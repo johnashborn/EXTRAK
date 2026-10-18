@@ -1,0 +1,123 @@
+@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@600;700;800&display=swap');
+
+/* EXTRACK admin login, glassmorphism variant.
+   The campus photo fills the whole screen. The form floats on the right inside a frosted glass card.
+   To try it, load this file instead of admin-login.css in AdminPanelProvider. */
+:root{
+  --x-deep:#272150; --x-ink:#E8E4F8; --x-gold:#D9B44A;
+  --x-gold-grad:linear-gradient(135deg,#BE932B,#EBCB6B 55%,#C9A03A);
+}
+
+/* ---------- full-screen backdrop ---------- */
+.extrak-art{
+  position:fixed; inset:0; z-index:0; width:auto;
+  display:flex; flex-direction:column; justify-content:space-between; gap:28px;
+  padding:40px clamp(28px,5vw,72px) 44px; padding-right:max(46vw,520px);
+  color:var(--x-ink); overflow:hidden; font-family:'Public Sans','Segoe UI',system-ui,sans-serif;
+  background-color:var(--x-deep);
+  /* glows give the glass something to blur even before a photo is added; photo goes underneath: public/images/campus.jpg */
+  background-image:
+    radial-gradient(520px 420px at 82% 22%,rgba(217,180,74,.38),transparent 70%),
+    radial-gradient(620px 520px at 68% 88%,rgba(120,98,235,.5),transparent 70%),
+    linear-gradient(100deg,rgba(39,33,80,.88) 0%,rgba(39,33,80,.55) 55%,rgba(39,33,80,.3) 100%),
+    url("../images/campus.webp");
+  background-size:cover; background-position:center;
+}
+.extrak-art > *{position:relative}
+.extrak-art .x-brand{display:flex; align-items:center; gap:12px}
+.extrak-art .x-brand img{width:46px; height:46px; object-fit:contain; filter:drop-shadow(0 2px 8px rgba(0,0,0,.4))}
+.extrak-art .x-brand b{font:800 21px/1 'Montserrat',sans-serif; letter-spacing:.05em; color:#fff}
+.extrak-art .x-eyebrow{font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--x-gold)}
+.extrak-art h2{
+  margin:14px 0 0; font:800 clamp(30px,3.2vw,48px)/1.06 'Montserrat',sans-serif; letter-spacing:-.025em; color:#fff; max-width:14ch; text-wrap:balance;
+  filter:drop-shadow(0 2px 14px rgba(20,16,50,.6));
+}
+.extrak-art h2 em{font-style:normal; background:var(--x-gold-grad); -webkit-background-clip:text; background-clip:text; color:transparent}
+.extrak-art .x-lead{margin:18px 0 0; max-width:42ch; font-size:15.5px; line-height:1.6; color:var(--x-ink); text-shadow:0 2px 16px rgba(20,16,50,.7)}
+.extrak-art .x-campuses-label{font-size:11px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:#CFC9EE; margin-bottom:10px}
+.extrak-art .x-chips{display:flex; flex-wrap:wrap; gap:8px}
+.extrak-art .x-chips span{
+  font-size:12.5px; font-weight:600; color:#fff; padding:6px 13px; border-radius:99px;
+  background:rgba(255,255,255,.1); border:1px solid rgba(255,255,255,.28); backdrop-filter:blur(8px);
+}
+
+/* ---------- the glass card ---------- */
+body:has(.extrak-art){background:#171440}
+body:has(.extrak-art) .fi-simple-layout{position:relative; z-index:2; margin-left:0; background:transparent}
+body:has(.extrak-art) .fi-simple-main-ctn{justify-content:flex-end; padding-right:clamp(24px,7vw,120px)}
+body:has(.extrak-art) .fi-simple-main{
+  max-width:27rem; width:100%; padding:2.6rem 2.4rem !important; border-radius:26px !important; color:#fff;
+  background:linear-gradient(145deg,rgba(255,255,255,.26),rgba(255,255,255,.08)) !important;
+  -webkit-backdrop-filter:blur(24px) saturate(150%); backdrop-filter:blur(24px) saturate(150%);
+  border:1px solid rgba(255,255,255,.38);
+  box-shadow:0 40px 90px -24px rgba(8,5,38,.7), inset 0 1px 0 rgba(255,255,255,.45), inset 0 -1px 0 rgba(255,255,255,.08) !important;
+}
+body:has(.extrak-art) .fi-simple-header{align-items:flex-start !important; text-align:left !important}
+body:has(.extrak-art) .fi-simple-header .fi-logo{display:none}
+body:has(.extrak-art) .fi-simple-header-heading{
+  font-family:'Montserrat',sans-serif; font-weight:800; font-size:2rem; letter-spacing:-.02em; color:#fff;
+}
+body:has(.extrak-art) .fi-simple-header-heading::before{
+  content:""; display:block; width:44px; height:4px; border-radius:4px; background:var(--x-gold-grad); margin-bottom:16px;
+}
+body:has(.extrak-art) .fi-simple-header p{color:rgba(255,255,255,.82)}
+
+/* labels, fields, links: always light on glass, in light and dark mode */
+body:has(.extrak-art) .fi-fo-field-wrp-label,
+body:has(.extrak-art) .fi-fo-field-wrp-label span{color:#fff !important}
+body:has(.extrak-art) .fi-input-wrp{
+  background:rgba(255,255,255,.14) !important; box-shadow:0 0 0 1px rgba(255,255,255,.36) !important; border-radius:12px;
+}
+body:has(.extrak-art) .fi-input-wrp:focus-within{box-shadow:0 0 0 2px #EBCB6B !important; background:rgba(255,255,255,.2) !important}
+body:has(.extrak-art) .fi-input{color:#fff !important}
+body:has(.extrak-art) .fi-input::placeholder{color:rgba(255,255,255,.55)}
+body:has(.extrak-art) .fi-input-wrp button,
+body:has(.extrak-art) .fi-input-wrp svg{color:rgba(255,255,255,.8) !important}
+body:has(.extrak-art) .fi-simple-main a{color:#F3DE9A !important}
+body:has(.extrak-art) .fi-simple-main button[type="submit"]{
+  background:var(--x-gold-grad) !important; color:#241A00 !important; font-weight:700; width:100%; justify-content:center; border-radius:12px;
+  box-shadow:0 10px 24px -10px rgba(217,180,74,.8) !important;
+}
+body:has(.extrak-art) .fi-simple-main button[type="submit"]:hover{filter:brightness(1.07)}
+
+.extrak-note{display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-top:1.25rem; font-size:.8rem; color:rgba(255,255,255,.75)}
+.extrak-note a{font-weight:600; text-decoration:none}
+.extrak-note a:hover{text-decoration:underline}
+.extrak-foot{position:static;margin-top:.75rem; bottom:16px; left:0; right:0; z-index:2; text-align:center; font-size:.8rem; color:rgba(255,255,255,.65); margin:0; pointer-events:none}
+
+/* ---------- smaller screens: keep the photo, drop the long text, center the card ---------- */
+@media (max-width:1000px){
+  .extrak-art{padding-right:clamp(28px,5vw,72px)}
+  .extrak-art > div:not(.x-brand){display:none}
+  body:has(.extrak-art) .fi-simple-main-ctn{justify-content:center; padding-right:1rem; padding-left:1rem}
+  body:has(.extrak-art) .fi-simple-header .fi-logo{display:none}
+}
+@media (prefers-reduced-motion:no-preference){
+  body:has(.extrak-art) .fi-simple-main{animation:xrise .5s ease both}
+  @keyframes xrise{from{opacity:0; transform:translateY(10px)}to{opacity:1; transform:none}}
+
+}
+
+
+body:has(.extrak-art) .fi-fo-field-wrp-hint,
+body:has(.extrak-art) .fi-fo-field-wrp-hint *{
+  color:#F3DE9A !important;
+  font-weight:600;
+}
+
+
+/* make every link and hint on the glass card readable */
+body:has(.extrak-art) .fi-simple-main a,
+body:has(.extrak-art) .fi-simple-main .fi-link,
+body:has(.extrak-art) .fi-simple-main .fi-link *,
+body:has(.extrak-art) .fi-simple-header-subheading,
+body:has(.extrak-art) .fi-simple-header-subheading *,
+body:has(.extrak-art) .fi-fo-field-wrp-hint,
+body:has(.extrak-art) .fi-fo-field-wrp-hint *{
+  color:#F3DE9A !important;
+  font-weight:600;
+}
+body:has(.extrak-art) .fi-simple-main a:hover{
+  color:#fff !important;
+  text-decoration:underline;
+}

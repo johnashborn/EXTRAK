@@ -1,0 +1,94 @@
+/* EXTRACK admin login. Loaded from AdminPanelProvider with a render hook.
+   Layout: violet brand panel fixed on the left, Filament's form on the right. */
+
+   @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@700;800&display=swap');
+:root{
+  --x-art-w:max(44vw,420px);
+  --x-deep:#272150; --x-ink:#DAD6F0; --x-dim:#9D98C8;
+  --x-gold:#D9B44A; --x-gold-grad:linear-gradient(135deg,#BE932B,#EBCB6B 55%,#C9A03A);
+}
+
+/* ---------- left brand panel ---------- */
+.extrak-art{
+  position:fixed; inset:0 auto 0 0; width:var(--x-art-w); z-index:1;
+  display:flex; flex-direction:column; justify-content:space-between; gap:32px;
+  padding:40px 48px 48px; color:var(--x-ink); overflow:hidden;
+  background-color:var(--x-deep);
+  /* Optional campus photo: public/images/campus.jpg shows through the tint */
+background-image:linear-gradient(180deg,rgba(39,33,80,.35) 0%,rgba(39,33,80,.5) 30%,rgba(39,33,80,.88) 55%,rgba(39,33,80,.95) 100%),url("../images/campus.jpg");
+background-size:cover; background-position:center; background-blend-mode:normal;
+  font-family:'Public Sans','Segoe UI',system-ui,sans-serif;
+}
+
+.dark body:has(.extrak-art) .fi-input-wrp{
+  background:rgba(255,255,255,.05) !important;
+  box-shadow:0 0 0 1px rgba(185,174,245,.35) !important;
+}
+
+.dark body:has(.extrak-art){
+  background:radial-gradient(900px 620px at 75% 15%,#2C2770 0%,#1D1A4D 55%,#171440 100%);
+}
+
+.dark .extrak-note{color:#B7B2DB}
+.dark body:has(.extrak-art) .fi-simple-main a{color:#C9BFFA}
+.extrak-art::before{
+  content:""; position:absolute; right:-260px; top:-280px; width:780px; height:780px; border-radius:50%;
+  background:repeating-radial-gradient(circle at center,transparent 0 34px,rgba(235,203,107,.17) 34px 35px);
+  pointer-events:none;
+}
+.extrak-art > *{position:relative}
+.extrak-art .x-brand{display:flex; align-items:center; gap:12px}
+.extrak-art .x-brand img{width:44px; height:44px; object-fit:contain}
+.extrak-art .x-brand b{font:800 21px/1 'Montserrat',sans-serif; letter-spacing:.05em; color:#fff}
+.extrak-art .x-eyebrow{font-size:12px; letter-spacing:.1em; text-transform:uppercase; font-weight:600; color:var(--x-gold)}
+.extrak-art h2{
+  margin:14px 0 0; font:800 clamp(30px,3.4vw,48px)/1.06 'Montserrat',sans-serif; letter-spacing:-.025em; color:#fff; max-width:14ch; text-wrap:balance;
+}
+.extrak-art h2 em{
+  font-style:normal; background:var(--x-gold-grad); -webkit-background-clip:text; background-clip:text; color:transparent;
+}
+.extrak-art .x-lead{margin:18px 0 0; max-width:42ch; font-size:15.5px; line-height:1.6; color:var(--x-ink)}
+.extrak-art .x-card{
+  margin-top:28px; max-width:360px; background:#fff; color:#1D1A3D; border-radius:14px; padding:14px 16px;
+  box-shadow:0 30px 60px -28px rgba(0,0,0,.65); display:flex; flex-direction:column; gap:8px; font-size:13px;
+}
+.extrak-art .x-row{display:flex; justify-content:space-between; gap:12px; align-items:flex-start}
+.extrak-art .x-chip{font-size:11px; font-weight:600; color:#C23B22; background:#FBE5E0; padding:2px 8px; border-radius:6px; white-space:nowrap}
+.extrak-art .x-pct{font:800 24px/1 'Montserrat',sans-serif; color:#C23B22}
+.extrak-art .x-meter{height:6px; border-radius:99px; background:#F0EDF8; overflow:hidden}
+.extrak-art .x-meter i{display:block; height:100%; width:87%; background:#C23B22}
+.extrak-art .x-card small{color:#6E6A93}
+.extrak-art .x-ghost{
+  position:absolute; left:-1.5%; bottom:-.52em; z-index:0; white-space:nowrap; pointer-events:none; user-select:none;
+  font:800 clamp(80px,9.5vw,170px)/1 'Montserrat',sans-serif; letter-spacing:.02em; color:transparent;
+  -webkit-text-stroke:1.5px rgba(235,203,107,.28);
+}
+
+/* ---------- right side: Filament's own form, reshaped ---------- */
+body:has(.extrak-art){background:#F2F0F8}
+.dark body:has(.extrak-art){background:#12102B}
+body:has(.extrak-art) .fi-simple-layout{margin-left:var(--x-art-w); background:transparent}
+body:has(.extrak-art) .fi-simple-main{
+  background:transparent !important; box-shadow:none !important; padding-inline:0 !important; max-width:26rem;
+}
+body:has(.extrak-art) .fi-simple-header{align-items:flex-start !important; text-align:left !important}
+body:has(.extrak-art) .fi-simple-header .fi-logo{display:none}
+body:has(.extrak-art) .fi-simple-header-heading{font-family:'Montserrat',sans-serif; font-weight:800; font-size:1.9rem; letter-spacing:-.02em}
+body:has(.extrak-art) .fi-simple-main button[type="submit"]{
+  background:var(--x-gold-grad) !important; color:#241A00 !important; font-weight:700; width:100%; justify-content:center;
+}
+body:has(.extrak-art) .fi-simple-main button[type="submit"]:hover{filter:brightness(1.07)}
+
+.extrak-note{display:flex; justify-content:space-between; gap:1rem; flex-wrap:wrap; margin-top:1.25rem; font-size:.8rem; color:#6E6A93}
+.extrak-note a{color:#3A3272; font-weight:600; text-decoration:none}
+.extrak-note a:hover{text-decoration:underline}
+.dark .extrak-note{color:#9D98C8}
+.dark .extrak-note a{color:#B9AEF5}
+
+/* ---------- phones and small windows: drop the panel, keep the form ---------- */
+@media (max-width:900px){
+  .extrak-art{display:none}
+  body:has(.extrak-art) .fi-simple-layout{margin-left:0}
+  body:has(.extrak-art) .fi-simple-header .fi-logo{display:block}
+  body:has(.extrak-art) .fi-simple-main{padding-inline:1.5rem !important}
+}

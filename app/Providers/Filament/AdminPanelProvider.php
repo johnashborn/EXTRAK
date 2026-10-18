@@ -1,5 +1,6 @@
 <?php
 
+
 namespace App\Providers\Filament;
 
 use Filament\Http\Middleware\Authenticate;
@@ -11,6 +12,8 @@ use Filament\Panel;
 use Filament\PanelProvider;
 use Filament\Support\Colors\Color;
 use Filament\Widgets;
+use Filament\Enums\ThemeMode;
+use Filament\View\PanelsRenderHook;
 use Illuminate\Cookie\Middleware\AddQueuedCookiesToResponse;
 use Illuminate\Cookie\Middleware\EncryptCookies;
 use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
@@ -26,16 +29,28 @@ class AdminPanelProvider extends PanelProvider
             ->default()
             ->id('admin')
             ->path('admin')
-            ->login()
+            ->login(\app\filament\Pages\Auth\Login::class)
+            ->passwordReset()
             ->colors([
                 'primary' => Color::hex('#3A3272'),
                 'warning' => Color::hex('#D9B44A'),
             ])
-            ->brandName('EXTRAK')
+            ->brandName('EXTRACK')
             ->font('Monserrat')
             ->darkMode(true)
+            ->defaultThemeMode(ThemeMode::Light)
             ->brandLogo(asset('images/logo.png'))
             ->brandLogoHeight('2.5rem')
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => '<link rel="stylesheet" href="'.asset('css/admin-login-glass.css').'">'
+            )
+            ->renderHook(
+                PanelsRenderHook::HEAD_END,
+                fn () => '<link rel="stylesheet" href="'.asset('css/admin-login-glass.css').'">'
+            )
+            ->renderHook(PanelsRenderHook::BODY_START, fn () => view('filament.login-art'))
+            ->renderHook(PanelsRenderHook::AUTH_LOGIN_FORM_AFTER, fn () => view('filament.login-note'))
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
