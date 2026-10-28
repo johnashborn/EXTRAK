@@ -1,0 +1,6 @@
+{
+  "enabledPlugins": {
+    "superpowers@anthropic-plugin-directory": true,
+    "design@anthropic-plugin-directory": true
+  }
+}
