@@ -1,6 +1,6 @@
 # EXTRACK system specification
 
-Status: draft v0.4 (2026-10-29). The process may change based on panel feedback on the research proposal. Anything marked **[Open]** is not final. Record changes in the [change log](#12-change-log).
+Status: draft v0.6 (2026-10-29). The process may change based on panel feedback on the research proposal. Anything marked **[Open]** is not final. Record changes in the [change log](#12-change-log).
 
 ## 1. Purpose
 
@@ -14,14 +14,14 @@ EXTRACK records, approves and reports extension services delivered by Bohol Isla
 | Extension Director's Assistant | Own campus | Drafts for the Extension Director | No | Works under one Extension Director |
 | Campus Director | Own campus | No | First approval of their own campus's requests only | Cannot see or approve other campuses' requests. Monitors campus extension work and budget |
 | Campus Director's Assistant | Own campus | No | No | Prepares reviews for the Campus Director |
-| University President | All campuses | No | Final approval of every request (section 4) | Sees all campuses |
-| System Admin | System | No | No | Manages users, campuses, barangays, budgets and settings |
+| University President | All campuses | No | Final approval of every request (section 4) | Sees all campuses. Sets each campus's yearly extension budget (section 6) |
+| System Admin | System | No | No | Manages users, campuses, barangays and settings |
 
 ### 2.1 Assistants
 
 - Every assistant has their own account, linked to one director (`users.principal_id`). Assistants do not use the director's login.
 - An assistant sees their director's dashboard and records, and can do everything the director can except approve, return, decline, or sign off a final report.
-- Records show both people: "Submitted by Ma. Elena Racines (Extension Director), encoded by J. Cruz (Assistant)".
+- Records show both people: "Submitted by Sir Marc Olaguir (Extension Director), encoded by Miss Jaquelyn L. Omapas (Assistant)".
 - Deactivating an assistant does not affect the director's account or records.
 
 ### 2.2 Campus scoping
@@ -57,10 +57,10 @@ The Extension Director does not approve requests.
 - Municipality and barangay (one or more barangays)
 - Start and end dates
 - Proposed budget (₱). It is charged to the campus's extension budget for the year of the start date.
-- Expected beneficiaries: number and sector, such as fisherfolk, women, youth or senior citizens
+- Expected beneficiaries: number and sector, such as fisherfolk, women, youth or senior citizens. The extension office can add a sector that is not on the list; added sectors stay available for later requests. **[Open]: should new sectors need the System Admin's approval?**
 - Partner agencies or LGU (optional)
-- Barangay letter of request (optional attachment)
-- Supporting documents
+- Supporting documents: one or more files, each tagged as barangay letter of request, project proposal, budget breakdown, MOA or partnership letter, or other. The Campus Director and the University President can view and download every file attached to a request.
+  - A request can be submitted without the barangay letter or the project proposal, but the form, the Campus Director and the President all see a "Missing documents" warning. **[Open]: confirm which documents are required, and whether a missing one should block submission**
 
 ### 3.3 Accomplishment report (after the service)
 
@@ -111,11 +111,29 @@ Draft ─submit─▶ Submitted ─campus approves─▶ For President ─Presid
 
 - Runs when a request is saved as a draft or submitted. It runs as a queued job, and the result shows on the form and on the request.
 - It compares against all non-declined requests from **all campuses** within ±12 months.
-- **Signals:**
-  - same barangay (strong) or same municipality (weak)
-  - overlapping or nearby dates
-  - similar description. v1 uses keyword/TF-IDF similarity; later versions may use text embeddings **[Open]**
-- If the score is at or above the threshold (default 70%), the request is flagged with the score, the matching record and the shared terms.
+- **Signals and weights** (weights and threshold are settings, tuned once real data is available):
+  - **Content (50%):** how similar the titles and descriptions are (see below)
+  - **Location (30%):** same barangay counts fully, same municipality partly
+  - **Timing (20%):** overlapping dates count fully; dates within 2 months or 6 months count partly
+- If the score is at or above the threshold (default 70%), the request is flagged with the score, the matching record and the reason for the match.
+
+### 5.1 Content similarity
+
+**Prototype (research proposal):** rule-based keyword matching. Titles and descriptions are split into keywords, common words are removed, and shared keywords are counted. Words in the same theme (for example tilapia and fishpond, both fisheries) count as partial matches. The shared keywords are shown as the reason for the flag.
+
+**Production:** AI text embeddings, so requests are compared by meaning rather than exact words, including across English, Filipino and Cebuano.
+
+1. **Filter by rules.** Only non-declined requests within ±12 months are compared. Location and timing are scored as above.
+2. **Embeddings for content.** When a request is saved, a queued job converts its title and description into an embedding (a vector representing its meaning) and stores it with the request. Content similarity is the cosine similarity between the two stored vectors, so the check itself needs no external call.
+   - Model options: a hosted embeddings service (for example Voyage AI), or an open-source multilingual sentence-embedding model hosted on a BISU server so that no data leaves the university. **[Open]** which one, decided with the university's IT office.
+3. **AI explanation (optional).** For flagged pairs only, a language model (for example Claude Haiku 5.5) writes a one or two sentence explanation for the Campus Director: what the two activities have in common and a suggested action. It is advice only.
+
+Rules for the AI parts:
+
+- **People decide.** The AI only scores and explains. It never approves, returns, declines or blocks a request; the Campus Director resolves every flag and the President can change it.
+- **Privacy (Data Privacy Act of 2012).** Only the activity title, description and category are sent to an AI service, never beneficiary names, contact details or attachments.
+- **Fallback.** If the embedding or AI service is unavailable, EXTRACK falls back to the keyword method and marks the result as such, so submissions are never held up.
+- **Evaluation.** Before going live, past requests are labelled by the extension office as duplicates or not, and the keyword and embedding methods are compared on precision (how many flags were real) and recall (how many real duplicates were caught).
 - A flag does not block submission. The Campus Director and the President both see it. The Campus Director records a resolution, and the President can change it. The Extension Director sees the flag but does not resolve it:
   - **Allow both:** the services are different enough
   - **Coordinate:** the campuses will work together
@@ -125,12 +143,20 @@ Draft ─submit─▶ Submitted ─campus approves─▶ For President ─Presid
 
 Each campus has a fixed extension budget per year. Requests do not need a separate budget approval, but EXTRACK tracks how much of the budget is used.
 
-- The System Admin sets each campus's allocation per year (`campus_budgets`).
+- The University President sets the university extension budget for the year (`university_budgets`): the total available for extension across all campuses.
+- The President divides the total among the campuses. Whatever is not allocated stays as the **university reserve**.
+  - If the campus allocations add up to more than the total, EXTRACK warns the President but allows it.
+  - **Split the total** fills the campus amounts automatically: equally, in the campuses' current shares, by the number of requests this year, or by the number of barangays served this year. The President can keep part of the total as reserve and adjust any amount before saving.
+  - **Top up from reserve** moves an amount from the reserve to one campus during the year. A reason is required, and the top-up is logged and notified like any other budget change.
+- The University President sets each campus's allocation per year (`campus_budgets`) on the Campus budgets page in the President's sidebar, and can change it during the year. Each change is recorded with who made it, when, and the old and new amounts.
+- An allocation can be set lower than what the campus has already committed and spent. EXTRACK warns the President but allows it; the campus then shows as over budget.
+- When a campus's allocation changes, its Extension Director and Campus Director are notified.
 - For each campus and year, EXTRACK shows:
 
 | Figure | How it's calculated |
 |---|---|
-| Allocation | Set by the Admin |
+| Allocation | Set by the University President |
+| University reserve | University extension budget − sum of campus allocations |
 | Pending | Proposed budget of requests that are Submitted or For President |
 | Committed | Proposed budget of requests that are Approved or Ongoing |
 | Spent | Actual budget of Completed and Archived requests |
@@ -201,6 +227,9 @@ Notifications are in-app (Filament database notifications). **[Open]** Should em
 ```
 campuses            id, name, municipality_id
 campus_budgets      id, campus_id, year, allocation          unique (campus_id, year)
+university_budgets  id, year, amount                         unique (year)
+budget_changes      id, year, campus_id (null = university total), kind (set | topup),
+                    from_amount, to_amount, reason, changed_by, created_at
 municipalities      id, name
 barangays           id, municipality_id, name
 categories          id, name
@@ -218,7 +247,9 @@ accomplishments     id, extension_request_id, actual_start, actual_end, actual_b
                     actual_beneficiaries, sectors (json), narrative, submitted_by, encoded_by, submitted_at
 attachments         id, attachable_type, attachable_id, kind (letter|document|photo|attendance), path, uploaded_by
 overlap_flags       id, request_id, matched_request_id, score, signals (json),
+                    method (keyword | embedding), explanation (AI text, nullable),
                     resolution, resolved_by, resolved_at, remark
+request_embeddings  extension_request_id, model, vector, source_hash, created_at   (production)
 settings            key, value (overlap_threshold, report_grace_days)
 notifications       Laravel default
 ```
@@ -233,6 +264,11 @@ notifications       Laravel default
 - Budget figures come from a `CampusBudgetService` (allocation, pending, committed, spent, remaining for a campus and year)
 - Overlap detection: a `DetectOverlaps` queued job that calls an `OverlapScorer` service, so the scoring method can be replaced later
 - Seed data: 6 campuses (Main/Tagbilaran, Balilihan, Bilar, Calape, Candijay, Clarin), Bohol municipalities and barangays, sample budgets, and demo users for each role
+
+### Prototype storage (until the full build)
+
+- The prototype dashboards save their shared data as one JSON document in `prototype_states` (with a version number that other open dashboards check every few seconds), and uploaded photos and documents in `prototype_files`, with the files on the private local disk (`storage/app/private/prototype`). Files are served only to signed-in users, up to 20 MB each.
+- This is a stand-in so the proposal demo works across browsers and devices. The full build replaces it with the tables in section 10 and keeps the same file handling.
 
 ### Build order
 
@@ -254,3 +290,8 @@ notifications       Laravel default
 | 2026-10-28 | Renamed RIE Director to Extension Director (Director of Extension). The University President now gives final approval to every request after campus approval. Removed the budget threshold and the "Needs President's approval" option. Added yearly campus budgets with an over-budget warning | Clarified with the extension office |
 | 2026-10-28 | Requests go one way only: the Extension Director requests, the Campus Director of the same campus approves, then the President. Removed Campus → Extension requests; the Extension Director no longer approves anything. Campus Directors cannot act on other campuses' requests | Clarified by the user |
 | 2026-10-29 | Added the extension map for all three roles, showing every campus's ongoing and completed services with photos (no budgets for other campuses). Added accomplishment report photos to the archive | Suggested by the user, so directors can learn from other campuses |
+| 2026-10-29 | Supporting documents: several tagged files per request, viewable and downloadable by the Campus Director and the President, with a warning when the barangay letter or project proposal is missing | Requested by the user |
+| 2026-10-29 | Beneficiary sectors can be added from the request form. The prototype now saves its data in MySQL and uploaded files on the server, so it works across browsers and devices | Requested by the user |
+| 2026-10-29 | The University President sets each campus's yearly extension budget (previously the System Admin). Changes are logged and the campus is notified | The President sets the budgets |
+| 2026-10-29 | The President also sets the university extension budget, divides it among campuses (with an automatic split), and keeps the rest as a reserve for mid-year top-ups | Requested by the user |
+| 2026-10-29 | Overlap check: documented the prototype's keyword method and weights, and set the production design to AI text embeddings with an optional AI explanation, people deciding, privacy limits, a keyword fallback and an evaluation plan. Added the budget tables to the data model | Planning for production |

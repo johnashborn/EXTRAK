@@ -45,10 +45,12 @@
 
 {{-- ========== Dashboard ========== --}}
 <section x-show="view==='dashboard'">
-  <div class="page-head">
+  <div class="page-head hero-banner">
+    <div class="hero-art" aria-hidden="true"></div>
     <div>
       <h1><span x-text="greeting()"></span>, <span x-text="me.name.split(' ').slice(0,2).join(' ')"></span>.</h1>
       <p>Here is what needs your decision at Balilihan Campus on <span x-text="todayLabel()"></span>. You see only this campus's requests.</p>
+      <p class="core-values"><b>B</b>alance · <b>I</b>ntegrity · <b>U</b>prightness · <b>S</b>tewardship</p>
     </div>
     <button type="button" class="btn primary" @click="openList('waiting')" x-show="waitingForMe.length">Review requests</button>
   </div>

@@ -1,15 +1,17 @@
 /*
  * EXTRACK prototype: Extension Director and Campus Director dashboards.
- * Front-end only. Mock data lives in memory and is saved to localStorage so changes survive a reload,
+ * The dashboards' data is saved on the server (MySQL) and uploaded photos and documents go to server storage,
  * and both dashboards read the same store. Mirrors docs/spec.md v0.3.
  */
 (function () {
-  const STORE_KEY = 'extrack.proto.v7';
+  const SCHEMA = 8; // bump when the sample data's shape changes, so older saved data is replaced
+  const STORE_KEY = 'extrack.proto.v7'; // used only when the page runs without the server
   const TODAY = '2026-10-28'; // fixed so overdue and upcoming logic stays consistent with the mock data
   const YEAR = 2026;
   const CAMPUSES = ['Main', 'Balilihan', 'Bilar', 'Calape', 'Candijay', 'Clarin'];
   // yearly extension budget per campus (set by the System Admin in the real system)
   const ALLOCATIONS = { Main: 900000, Balilihan: 500000, Bilar: 450000, Calape: 450000, Candijay: 400000, Clarin: 400000 };
+  const UNIVERSITY_BUDGET = 3500000; // set by the President; what is not given to a campus is the reserve
   // town centres in Bohol; barangay pins are placed around them (approximate, not surveyed positions)
   const TOWNS = {
     Balilihan: [9.7553, 123.9703], Tagbilaran: [9.6476, 123.8550], Calape: [9.8918, 123.8768], Tubigon: [9.9524, 123.9625],
@@ -29,7 +31,8 @@
   const DOC_KINDS = { letter: 'Barangay letter of request', proposal: 'Project proposal', budget: 'Budget breakdown', moa: 'MOA or partnership letter', other: 'Other document' };
   // the approvers are warned when these are missing (spec 3.2, [Open]: confirm the list)
   const REQUIRED_DOCS = ['letter', 'proposal'];
-  const DOC_LIMIT = 1024 * 1024; // prototype only: files live in browser storage
+  const SERVER = window.EXTRACK_SERVER || null;
+  const csrf = () => (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
   function guessKind(name) {
     const n = name.toLowerCase();
     if (/letter|request|endorse/.test(n)) return 'letter';
@@ -47,29 +50,86 @@
     });
   }
 
+  // Sends a photo or document to the server. Without a server (a saved copy of the page) it stays inside the page.
+  async function storeFile(file, shrinkTo) {
+    if (!SERVER) {
+      const isImg = file.type.startsWith('image/');
+      const src = isImg ? await shrinkImage(file, shrinkTo) : await readAsDataUrl(file);
+      return { id: null, url: src, name: file.name, type: isImg ? 'image/jpeg' : (file.type || 'application/octet-stream'), size: Math.round(src.length * 0.75) };
+    }
+    const body = new FormData();
+    body.append('file', file);
+    const res = await fetch(SERVER.filesUrl, { method: 'POST', headers: { Accept: 'application/json', 'X-CSRF-TOKEN': csrf() }, body });
+    if (res.status === 422) {
+      const j = await res.json();
+      throw new Error((j.errors && j.errors.file && j.errors.file[0]) || 'This file was not accepted.');
+    }
+    if (!res.ok) throw new Error('The upload failed. Check that EXTRACK is running and you are still signed in.');
+    return res.json();
+  }
+
+  // ---------- document preview ----------
+  // Word and Excel previews load their libraries only the first time someone opens such a file
+  const LIBS = {
+    jszip: 'https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js',
+    docx: 'https://cdn.jsdelivr.net/npm/docx-preview@0.3.7/dist/docx-preview.min.js',
+    // SheetJS from its own CDN: the old copy on npm has known problems reading untrusted files
+    xlsx: 'https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js',
+  };
+  const loadedLibs = {};
+  function loadScript(url) {
+    if (!loadedLibs[url]) {
+      loadedLibs[url] = new Promise((resolve, reject) => {
+        const s = document.createElement('script');
+        s.src = url;
+        s.onload = resolve;
+        s.onerror = () => { delete loadedLibs[url]; reject(new Error('The preview could not load. Check the internet connection, or download the file.')); };
+        document.head.appendChild(s);
+      });
+    }
+    return loadedLibs[url];
+  }
+  function docFormat(d) {
+    const ext = ((/\.([a-z0-9]+)$/i.exec(d.name) || [])[1] || '').toLowerCase();
+    if (d.type.startsWith('image/')) return 'image';
+    if (d.type === 'application/pdf' || ext === 'pdf') return 'pdf';
+    if (ext === 'docx' || d.type.includes('wordprocessingml')) return 'docx';
+    if (ext === 'xlsx' || ext === 'xls' || d.type.includes('spreadsheetml') || d.type.includes('ms-excel')) return 'sheet';
+    return 'none';
+  }
+  async function fileBytes(src) {
+    const res = await fetch(src);
+    if (!res.ok) throw new Error('The file could not be loaded. Try downloading it instead.');
+    return res.arrayBuffer();
+  }
+  // spreadsheet HTML comes from an uploaded file, so keep only plain table markup
+  function cleanHtml(html) {
+    const t = document.createElement('template');
+    t.innerHTML = html;
+    t.content.querySelectorAll('script,style,iframe,object,embed,link,meta,form').forEach(n => n.remove());
+    t.content.querySelectorAll('*').forEach(n => [...n.attributes].forEach(a => {
+      if (/^on/i.test(a.name) || /^\s*javascript:/i.test(a.value)) n.removeAttribute(a.name);
+    }));
+    return t.innerHTML;
+  }
+
   // older sample records have no campus field; they all belong to Balilihan
   const campusOf = r => r.campus || 'Balilihan';
 
   const PEOPLE = {
-    ed: { name: 'Ma. Elena Racines', title: 'Extension Director', initials: 'ER' },
-    asst: { name: 'Joy Cruz', title: "Extension Director's Assistant", initials: 'JC' },
-    cd: { name: 'Dr. Ramon Tabada', title: 'Campus Director', initials: 'RT' },
+    ed: { name: 'Sir Marc Olaguir', title: 'Extension Director', initials: 'MO' },
+    asst: { name: 'Miss Jaquelyn L. Omapas', title: "Extension Director's Assistant", initials: 'JO' },
+    cd: { name: 'Mrs. Marietta Macalolot', title: 'Campus Director', initials: 'MM' },
     cdasst: { name: 'Lorna Abella', title: "Campus Director's Assistant", initials: 'LA' },
-    pres: { name: 'University President', title: 'University President', initials: 'UP' },
+    pres: { name: 'Mr. Anthony M. Penaso', title: 'University President', initials: 'AP' },
   };
+  // names used in earlier sample data, replaced when saved data is loaded
+  const RENAMES = [['Ma. Elena Racines', PEOPLE.ed.name], ['Dr. Ramon Tabada', PEOPLE.cd.name], ['Joy Cruz', PEOPLE.asst.name]];
   // the other campuses' directors only appear in history entries
   CAMPUSES.filter(c => c !== 'Balilihan').forEach(c => {
-    PEOPLE[c + '-ed'] = { name: c + ' Campus Extension Director', title: 'Extension Director', initials: c.slice(0, 2).toUpperCase() };
-    PEOPLE[c + '-cd'] = { name: c + ' Campus Director', title: 'Campus Director', initials: c.slice(0, 2).toUpperCase() };
+    PEOPLE[c + '-ed'] = { name: 'Extension Director of ' + c + ' Campus', title: 'Extension Director', initials: c.slice(0, 2).toUpperCase() };
+    PEOPLE[c + '-cd'] = { name: 'Campus Director of ' + c + ' Campus', title: 'Campus Director', initials: c.slice(0, 2).toUpperCase() };
   });
-
-  // The signed-in account plays the role of the page it opened (set by the Blade view)
-  if (window.EXTRACK_USER && window.EXTRACK_USER.name) {
-    const name = window.EXTRACK_USER.name;
-    const initials = name.split(/\s+/).filter(Boolean).slice(0, 2).map(w => w[0].toUpperCase()).join('');
-    const role = { cd: 'cd', pres: 'pres' }[window.EXTRACK_ROLE] || 'ed';
-    PEOPLE[role] = { ...PEOPLE[role], name, initials };
-  }
 
   const CATEGORIES = ['Agriculture & Fisheries', 'Livelihood', 'Health', 'Education', 'Environment', 'Technology & Digital', 'Others'];
   const SECTORS = ['Fisherfolk', 'Farmers', 'Women', 'Youth', 'Senior citizens', 'PWD', '4Ps households', 'Teachers', 'Health workers', 'MSME owners'];
@@ -244,10 +304,26 @@
     ];
   }
 
+  // Saved data that lost everything but its requests (a server bug, since fixed) is completed with
+  // the sample defaults, so the requests and their uploaded files are kept.
+  function repair(saved) {
+    if (!saved || !Array.isArray(saved.requests)) return { db: saved, changed: false };
+    const missing = ['schema', 'notifications', 'allocations', 'year', 'nextNo', 'universityBudget'].filter(k => saved[k] === undefined);
+    if (!missing.length) return { db: saved, changed: false };
+    const used = saved.requests.map(r => Number((/^BAL-\d{4}-0*(\d+)$/.exec(r.code || '') || [])[1] || 0));
+    const db = { year: YEAR, allocations: { ...ALLOCATIONS }, notifications: [], ...saved };
+    db.schema = saved.schema || SCHEMA;
+    db.nextNo = saved.nextNo || Math.max(25, ...used) + 1; // never reuse a request code
+    if (db.universityBudget === undefined) db.universityBudget = Math.max(UNIVERSITY_BUDGET, Object.values(db.allocations).reduce((t, v) => t + v, 0));
+    return { db, changed: true };
+  }
+
   function seed() {
     const db = {
+      schema: SCHEMA,
       year: YEAR,
       allocations: { ...ALLOCATIONS },
+      universityBudget: UNIVERSITY_BUDGET,
       nextNo: 25,
       requests: [
         {
@@ -381,21 +457,21 @@
         },
       ],
       notifications: [
-        { to: 'ed', id: 'n1', at: '2026-10-28T09:00', kind: 'info', read: false, text: 'Dr. Ramon Tabada left a remark on Digital Literacy for Barangay Health Workers.', ref: 'r22' },
+        { to: 'ed', id: 'n1', at: '2026-10-28T09:00', kind: 'info', read: false, text: 'Mrs. Marietta Macalolot left a remark on Digital Literacy for Barangay Health Workers.', ref: 'r22' },
         { to: 'ed', id: 'n2', at: '2026-10-28T07:00', kind: 'overdue', read: false, text: 'Report overdue: Senior Citizens Wellness and Nutrition Program ended on Oct 5.', ref: 'r15' },
         { to: 'ed', id: 'n3', at: '2026-10-27T11:00', kind: 'returned', read: false, text: 'The University President returned First Aid and Disaster Preparedness Training.', ref: 'r17' },
         { to: 'ed', id: 'n4', at: '2026-10-28T08:21', kind: 'overdue', read: true, text: 'Possible overlap flagged on Integrated Organic Farming and Vermicomposting for 4Ps Households. The Campus Director will decide when reviewing it.', ref: 'r23' },
-        { to: 'ed', id: 'n5', at: '2026-10-20T09:15', kind: 'approved', read: true, text: 'The Campus Director approved Watershed Rehabilitation and Tree Planting. It is now with the President.', ref: 'r19' },
-        { to: 'cd', id: 'c1', at: '2026-10-28T08:20', kind: 'request', read: false, text: 'Ma. Elena Racines submitted Integrated Organic Farming and Vermicomposting for 4Ps Households for your approval. EXTRACK flagged a possible overlap.', ref: 'r23' },
-        { to: 'cd', id: 'c2', at: '2026-10-27T10:10', kind: 'request', read: false, text: 'Ma. Elena Racines submitted Digital Literacy for Barangay Health Workers for your approval.', ref: 'r22' },
+        { to: 'ed', id: 'n5', at: '2026-10-20T09:15', kind: 'approved', read: true, text: 'The Campus Director of Balilihan Campus approved Watershed Rehabilitation and Tree Planting. It is now with the President.', ref: 'r19' },
+        { to: 'cd', id: 'c1', at: '2026-10-28T08:20', kind: 'request', read: false, text: 'Sir Marc Olaguir submitted Integrated Organic Farming and Vermicomposting for 4Ps Households for your approval. EXTRACK flagged a possible overlap.', ref: 'r23' },
+        { to: 'cd', id: 'c2', at: '2026-10-27T10:10', kind: 'request', read: false, text: 'Sir Marc Olaguir submitted Digital Literacy for Barangay Health Workers for your approval.', ref: 'r22' },
         { to: 'cd', id: 'c3', at: '2026-10-27T11:00', kind: 'returned', read: true, text: 'The University President returned First Aid and Disaster Preparedness Training to the Extension Director.', ref: 'r17' },
-        { to: 'pres', id: 'p1', at: '2026-10-27T16:00', kind: 'request', read: false, text: 'The Main Campus Director approved Mental Health First Aid for Barangay Health Workers. It needs your final approval.', ref: 'main-2026-033' },
-        { to: 'pres', id: 'p2', at: '2026-10-26T14:00', kind: 'request', read: false, text: 'The Candijay Campus Director approved Mat Weaving Enterprise for Women. It needs your final approval.', ref: 'can-2026-028' },
-        { to: 'pres', id: 'p3', at: '2026-10-21T15:30', kind: 'request', read: false, text: 'The Calape Campus Director approved Tree Planting along the Abatan River Watershed. EXTRACK flagged a possible overlap with Balilihan Campus.', ref: 'cal-2026-035' },
-        { to: 'pres', id: 'p4', at: '2026-10-20T09:15', kind: 'request', read: true, text: 'The Balilihan Campus Director approved Watershed Rehabilitation and Tree Planting. It needs your final approval.', ref: 'r19' },
-        { to: 'pres', id: 'p5', at: '2026-10-16T09:00', kind: 'request', read: true, text: 'The Clarin Campus Director approved Rice-Duck Farming Demonstration. It needs your final approval.', ref: 'cla-2026-021' },
+        { to: 'pres', id: 'p1', at: '2026-10-27T16:00', kind: 'request', read: false, text: 'The Campus Director of Main Campus approved Mental Health First Aid for Barangay Health Workers. It needs your final approval.', ref: 'main-2026-033' },
+        { to: 'pres', id: 'p2', at: '2026-10-26T14:00', kind: 'request', read: false, text: 'The Campus Director of Candijay Campus approved Mat Weaving Enterprise for Women. It needs your final approval.', ref: 'can-2026-028' },
+        { to: 'pres', id: 'p3', at: '2026-10-21T15:30', kind: 'request', read: false, text: 'The Campus Director of Calape Campus approved Tree Planting along the Abatan River Watershed. EXTRACK flagged a possible overlap with Balilihan Campus.', ref: 'cal-2026-035' },
+        { to: 'pres', id: 'p4', at: '2026-10-20T09:15', kind: 'request', read: true, text: 'The Campus Director of Balilihan Campus approved Watershed Rehabilitation and Tree Planting. It needs your final approval.', ref: 'r19' },
+        { to: 'pres', id: 'p5', at: '2026-10-16T09:00', kind: 'request', read: true, text: 'The Campus Director of Clarin Campus approved Rice-Duck Farming Demonstration. It needs your final approval.', ref: 'cla-2026-021' },
         { to: 'pres', id: 'p6', at: '2026-10-14T07:00', kind: 'overdue', read: true, text: 'Candijay Campus: Coastal Cleanup and Waste Segregation ended on Aug 30 with no accomplishment report.', ref: 'can-2026-011' },
-        { to: 'cd', id: 'c4', at: '2026-10-23T08:45', kind: 'request', read: true, text: 'Ma. Elena Racines submitted Basic Bookkeeping for Sari-sari Store Owners for your approval.', ref: 'r21' },
+        { to: 'cd', id: 'c4', at: '2026-10-23T08:45', kind: 'request', read: true, text: 'Sir Marc Olaguir submitted Basic Bookkeeping for Sari-sari Store Owners for your approval.', ref: 'r21' },
       ],
     };
     db.requests.push(...otherCampusRequests());
@@ -410,7 +486,7 @@
   }
 
   // ---------- helpers ----------
-  const peso = n => '₱' + Math.round(n || 0).toLocaleString('en-PH');
+  const peso = n => (n < 0 ? '−' : '') + '₱' + Math.abs(Math.round(n || 0)).toLocaleString('en-PH');
   const parse = d => new Date(d.length === 10 ? d + 'T00:00' : d);
   const daysBetween = (a, b) => Math.round((parse(b) - parse(a)) / 86400000);
   const fmtDate = d => d ? parse(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
@@ -471,8 +547,8 @@
   }
 
   // ---------- Alpine components ----------
-  // Both dashboards share one data store (same localStorage key), so a request the Extension Director
-  // submits shows up for the Campus Director, and the Campus Director's decision shows up back.
+  // All dashboards share one data store on the server, so a request the Extension Director submits
+  // shows up for the Campus Director and the President, and their decisions show up back.
 
   // copies getters as getters, which object spread would not
   function compose(...parts) {
@@ -483,6 +559,10 @@
 
   function shared() {
     const mapState = { map: null, layer: null };
+    // the document being rendered; a newer request cancels an older, slower one
+    const viewer = { token: 0 };
+    // saving to and refreshing from the server; kept out of Alpine's reactive state
+    const sync = { timer: null, saving: false, remote: false, version: 0 };
     return {
       PEOPLE, CATEGORIES, SECTORS, PLACES, STATUS, TODAY, CAMPUSES,
       db: null,
@@ -493,33 +573,79 @@
       notifOpen: false,
       toast: null,
       lightbox: null,
+      alert: null,
+      docView: null,
       theme: 'light',
       mapFilter: { campus: '', category: '', ongoing: true, completed: true },
       mapSel: null,
 
       init() {
-        let saved = null;
-        try { saved = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { /* storage unavailable */ }
-        this.db = saved && saved.requests ? saved : seed();
+        let saved = SERVER ? SERVER.state : null;
+        if (!SERVER) { try { saved = JSON.parse(localStorage.getItem(STORE_KEY)); } catch (e) { /* storage unavailable */ } }
+        sync.version = SERVER ? SERVER.version : 0;
+        const fixed = repair(saved);
+        saved = fixed.db;
+        // data saved before the directors' names changed keeps everything, with the names updated
+        const renamed = saved && saved.requests && saved.schema === 7;
+        if (renamed) {
+          saved.notifications.forEach(n => RENAMES.forEach(([from, to]) => { n.text = n.text.split(from).join(to); }));
+          saved.schema = SCHEMA;
+        }
+        const usable = saved && saved.requests && saved.schema === SCHEMA;
+        this.db = usable ? saved : seed();
+        if (!usable || renamed || fixed.changed) this.persist(); // first visit, older sample data, or names updated: save it
         try { this.theme = localStorage.getItem('extrack.theme.v2') === 'dark' ? 'dark' : 'light'; } catch (e) { }
         this.applyTheme();
-        this.$watch('db', () => { this.persist(); this.drawMarkers(); }, { deep: true });
+        this.$watch('db', () => { if (sync.remote) sync.remote = false; else this.persist(); this.drawMarkers(); }, { deep: true });
         this.$watch('mapFilter', () => this.drawMarkers(), { deep: true });
         this.$watch('mapSel', () => this.drawMarkers(), { deep: true });
-        // pick up changes made in the other dashboard (another tab)
-        window.addEventListener('storage', e => {
-          if (e.key !== STORE_KEY || !e.newValue) return;
-          try { this.db = JSON.parse(e.newValue); } catch (err) { }
-        });
+        // pick up what the other dashboards saved, in this browser or another one
+        if (SERVER) setInterval(() => this.pull(), 4000);
         window.addEventListener('keydown', e => {
+          if (this.docView && !this.alert && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return this.stepDoc(e.key === 'ArrowRight' ? 1 : -1);
           if (this.lightbox && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return this.stepPhoto(e.key === 'ArrowRight' ? 1 : -1);
           if (e.key !== 'Escape') return;
-          if (this.lightbox) this.lightbox = null; else if (this.modal) this.modal = null; else if (this.selectedId) this.selectedId = null; else this.notifOpen = false;
+          if (this.alert) this.alert = null; else if (this.docView) this.closeDocs(); else if (this.lightbox) this.lightbox = null; else if (this.modal) this.modal = null; else if (this.selectedId) this.selectedId = null; else this.notifOpen = false;
         });
       },
       persist() {
-        try { localStorage.setItem(STORE_KEY, JSON.stringify(this.db)); }
-        catch (e) { if (e && e.name === 'QuotaExceededError') this.notify('Browser storage is full, so the latest photos were not saved. Remove some photos or reset the demo data.', 'bad'); }
+        if (!SERVER) { try { localStorage.setItem(STORE_KEY, JSON.stringify(this.db)); } catch (e) { } return; }
+        // wait for a pause in changes, then save once
+        clearTimeout(sync.timer);
+        sync.timer = setTimeout(() => this.saveNow(), 500);
+      },
+      async saveNow() {
+        sync.timer = null;
+        sync.saving = true;
+        try {
+          const res = await fetch(SERVER.stateUrl, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json', Accept: 'application/json', 'X-CSRF-TOKEN': csrf() },
+            body: JSON.stringify({ data: this.db }),
+          });
+          if (!res.ok) throw new Error(String(res.status));
+          sync.version = (await res.json()).version;
+        } catch (e) {
+          this.notify('Could not save to the server. Check that EXTRACK is running and you are still signed in.', 'bad');
+        } finally {
+          sync.saving = false;
+        }
+      },
+      async pull() {
+        if (sync.timer || sync.saving || document.hidden) return;
+        try {
+          const res = await fetch(SERVER.stateUrl, { headers: { Accept: 'application/json' } });
+          if (!res.ok) return;
+          const j = await res.json();
+          // a local change that started meanwhile wins; the next pull compares again
+          const remote = repair(j.data).db;
+          // ignore anything this page cannot use, rather than break the open dashboard
+          if (remote && remote.schema === SCHEMA && j.version > sync.version && !sync.timer && !sync.saving) {
+            sync.version = j.version;
+            sync.remote = true;
+            this.db = remote;
+          }
+        } catch (e) { /* server unreachable; try again on the next pull */ }
       },
       resetDemo() {
         this.db = seed(); this.selectedId = null; this.modal = null; this.view = 'dashboard';
@@ -590,6 +716,8 @@
 
       // ---------- budget ----------
       get budget() { return this.budgetOf(this.campus); },
+      // the latest change the President made to this campus's budget this year, if any
+      get budgetChange() { return (this.db.budgetLog || []).find(e => e.campus === this.campus && e.year === this.db.year); },
       budgetOf(campus) {
         const inYear = r => r.start.startsWith(String(this.db.year));
         const sum = (arr, f) => arr.reduce((t, r) => t + f(r), 0);
@@ -641,6 +769,21 @@
 
       // ---------- actions ----------
       open(id) { this.selectedId = id; this.notifOpen = false; },
+      // confirmation for the main actions (submit, approve, return, decline); small ones use notify()
+      // tone: ok | warn | bad. notes: extra lines, such as warnings the next person will see
+      showAlert({ tone = 'ok', title, message, notes = [], next = '', ref = null }) {
+        this.toast = null;
+        this.alert = { tone, title, message, notes: notes.filter(Boolean), next, ref };
+      },
+      alertView() { const id = this.alert.ref; this.alert = null; this.open(id); },
+      // what the next person will see flagged on a just-submitted request
+      submitNotes(r) {
+        return [
+          r.overlap ? 'EXTRACK flagged a possible overlap (' + r.overlap.score + '% similar). The Campus Director will decide how to handle it.' : '',
+          this.missingDocs(r).length ? 'Not attached: ' + this.missingDocs(r).join(', ') + '. The Campus Director will see that it is missing.' : '',
+          this.budgetFor(r).over ? 'This is ' + peso(this.budgetFor(r).by) + ' over the remaining campus budget.' : '',
+        ];
+      },
       notify(msg, tone) { this.toast = { msg, tone: tone || 'ok', id: Math.random() }; const id = this.toast.id; setTimeout(() => { if (this.toast && this.toast.id === id) this.toast = null; }, 3200); },
       // to: 'ed', 'cd' or both
       pushNotification(text, ref, kind, to) {
@@ -705,18 +848,65 @@
       docsOf(r) { return (r && r.attachments) || []; },
       missingDocs(r) { const kinds = this.docsOf(r).map(d => d.kind); return REQUIRED_DOCS.filter(k => !kinds.includes(k)).map(k => DOC_KINDS[k]); },
       docExt(d) { const m = /\.([a-z0-9]{2,4})$/i.exec(d.name); return m ? m[1].toUpperCase() : 'FILE'; },
-      canView(d) { return d.type.startsWith('image/') || d.type === 'application/pdf'; },
       fmtSize(n) { return n >= 1048576 ? (n / 1048576).toFixed(1) + ' MB' : Math.max(1, Math.round(n / 1024)) + ' KB'; },
-      async viewDoc(d) {
-        if (d.type.startsWith('image/')) return this.openPhoto([{ name: d.name + (d.sample ? ' (sample)' : ''), src: d.src }], 0);
-        // browsers block opening data: links directly, so open the PDF from a blob
-        const blob = await (await fetch(d.src)).blob();
-        window.open(URL.createObjectURL(blob), '_blank');
+      // ---------- document viewer: read files without leaving the dashboard ----------
+      openDocs(docs, i) {
+        this.docView = { docs, i, format: 'none', status: 'loading', error: '', pdfUrl: '', sheets: [], sheet: 0 };
+        this.$nextTick(() => { this.renderDoc(); const b = document.querySelector('.docview-close'); if (b) b.focus(); });
+      },
+      get docCurrent() { return this.docView ? this.docView.docs[this.docView.i] : null; },
+      stepDoc(n) {
+        const v = this.docView;
+        if (!v || v.docs.length < 2) return;
+        v.i = (v.i + n + v.docs.length) % v.docs.length;
+        this.renderDoc();
+      },
+      closeDocs() { viewer.token++; this.docView = null; if (this.$refs.docHost) this.$refs.docHost.innerHTML = ''; },
+      async renderDoc() {
+        const v = this.docView;
+        if (!v) return;
+        const d = v.docs[v.i], t = ++viewer.token, host = this.$refs.docHost;
+        Object.assign(v, { format: docFormat(d), status: 'loading', error: '', pdfUrl: '', sheets: [], sheet: 0 });
+        if (host) host.innerHTML = '';
+        try {
+          if (v.format === 'image') { v.status = 'ready'; return; }
+          if (v.format === 'pdf') {
+            // browsers will not show data: links in a frame, so use a blob for files kept in the page
+            v.pdfUrl = d.src.startsWith('data:') ? URL.createObjectURL(await (await fetch(d.src)).blob()) : d.src;
+            v.status = 'ready';
+            return;
+          }
+          if (v.format === 'docx') {
+            await loadScript(LIBS.jszip);
+            await loadScript(LIBS.docx);
+            const bytes = await fileBytes(d.src);
+            if (t !== viewer.token) return;
+            await window.docx.renderAsync(bytes, host, null, { inWrapper: true, ignoreLastRenderedPageBreak: true });
+            if (t === viewer.token) v.status = 'ready';
+            return;
+          }
+          if (v.format === 'sheet') {
+            await loadScript(LIBS.xlsx);
+            const bytes = await fileBytes(d.src);
+            if (t !== viewer.token) return;
+            const wb = window.XLSX.read(bytes, { type: 'array' });
+            v.sheets = wb.SheetNames.map(name => ({ name, html: cleanHtml(window.XLSX.utils.sheet_to_html(wb.Sheets[name], { header: '', footer: '' })) }));
+            v.status = 'ready';
+            return;
+          }
+          v.status = 'unsupported';
+        } catch (e) {
+          if (t === viewer.token) { v.status = 'error'; v.error = e.message || 'This file could not be shown.'; }
+        }
       },
       downloadDoc(d) {
         const a = document.createElement('a');
-        a.href = d.src;
-        a.download = d.sample ? d.name.replace(/\.\w+$/, '') + ' (sample).svg' : d.name;
+        if (d.src.startsWith('data:')) {
+          a.href = d.src;
+          a.download = d.sample ? d.name.replace(/\.\w+$/, '') + ' (sample).svg' : d.name;
+        } else {
+          a.href = d.src + (d.src.includes('?') ? '&' : '?') + 'download=1';
+        }
         document.body.appendChild(a); a.click(); a.remove();
       },
 
@@ -757,6 +947,19 @@
       form: emptyForm(),
       formErrors: {},
       docBusy: false,
+      addingSector: false,
+      newSector: '',
+      // the standard sectors plus any the extension office has added
+      get allSectors() { return [...SECTORS, ...(this.db.extraSectors || [])]; },
+      addSector() {
+        const v = this.newSector.trim().replace(/\s+/g, ' ');
+        if (!v) return;
+        const existing = this.allSectors.find(s => s.toLowerCase() === v.toLowerCase());
+        const name = existing || v;
+        if (!existing) this.db.extraSectors = [...(this.db.extraSectors || []), name];
+        if (!this.form.sectors.includes(name)) this.form.sectors.push(name);
+        this.newSector = ''; this.addingSector = false;
+      },
       docError: '',
       tabs: [['all', 'All'], ['waiting', 'Waiting for approval'], ['returned', 'Returned'], ['reports', 'Reports overdue'], ['overlaps', 'Overlaps'], ['drafts', 'Drafts']],
       get isDirector() { return this.actor === 'ed'; },
@@ -814,20 +1017,25 @@
         e.target.value = '';
         m.busy = true; m.error = '';
         for (const f of files) {
-          try { m.photos.push({ name: f.name, src: await shrinkImage(f) }); } catch (err) { m.error = 'Could not read ' + f.name + '. Choose a JPG or PNG photo.'; }
+          try {
+            const up = await storeFile(f, 1000);
+            m.photos.push({ name: up.name, src: up.url, fileId: up.id });
+          } catch (err) { m.error = f.name + ': ' + err.message; }
         }
         m.busy = false;
       },
       removePhoto(i) { this.modal.photos.splice(i, 1); },
       saveReport(submit) {
         const m = this.modal, r = this.byId(m.id);
-        if (m.busy) { m.error = 'Wait for the photos to finish loading.'; return; }
+        if (m.busy) { m.error = 'Wait for the photos to finish uploading.'; return; }
         if (!m.narrative.trim() || !m.actualBudget || !m.actualBeneficiaries) { m.error = 'Fill in the actual budget, beneficiaries and what was done.'; return; }
         r.report = { actualStart: m.actualStart, actualEnd: m.actualEnd, actualBudget: Number(m.actualBudget), actualBeneficiaries: Number(m.actualBeneficiaries), narrative: m.narrative.trim(), photos: [...m.photos], encodedBy: this.actor };
         if (submit) {
           this.move(r, 'completed');
           this.pushNotification(this.person('ed').name + ' submitted the accomplishment report for ' + r.title + '.', r.id, 'approved', 'cd');
-          this.notify('Accomplishment report submitted. The service is now completed.');
+          this.showAlert({ title: 'Accomplishment report submitted', message: '"' + r.title + '" is now completed and moved to the archive.',
+            notes: [r.report.photos.length ? r.report.photos.length + (r.report.photos.length === 1 ? ' photo' : ' photos') + ' attached.' : 'No photos attached.'],
+            next: 'The Campus Director has been notified.', ref: r.id });
         } else this.notify('Report saved as a draft. The Extension Director can submit it.');
         this.modal = null;
       },
@@ -836,7 +1044,8 @@
         if (!this.isDirector) return;
         this.move(r, 'submitted');
         this.pushNotification(this.person('ed').name + ' submitted ' + r.title + ' for your approval.', r.id, 'request', 'cd');
-        this.notify('Submitted to the Campus Director.');
+        this.showAlert({ title: 'Request submitted', message: '"' + r.title + '" was sent to ' + this.person('cd').name + ' (Campus Director) for approval.',
+          notes: this.submitNotes(r), next: 'You will get a notification when the Campus Director approves or returns it.', ref: r.id });
       },
       deleteDraft(r) {
         this.db.requests = this.db.requests.filter(x => x.id !== r.id);
@@ -849,8 +1058,8 @@
         if (action === 'approve') {
           if (r.overlap && !r.overlap.resolution) Object.assign(r.overlap, { resolution: 'coordinate', resolvedBy: 'cd' });
           this.move(r, 'for_president', '', 'cd');
-          this.pushNotification('The Campus Director approved ' + r.title + '. It is now with the President.', r.id, 'approved', 'ed');
-          this.pushNotification('The Balilihan Campus Director approved ' + r.title + '. It needs your final approval.', r.id, 'request', 'pres');
+          this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It is now with the President.', r.id, 'approved', 'ed');
+          this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It needs your final approval.', r.id, 'request', 'pres');
         }
         if (action === 'return') { this.move(r, 'returned', 'Please add the expected outcomes per barangay.', 'cd'); this.pushNotification('The Campus Director returned ' + r.title + '.', r.id, 'returned', 'ed'); }
         if (action === 'decline') { this.move(r, 'declined', 'The campus extension budget cannot cover this request this year.', 'cd'); this.pushNotification('The Campus Director declined ' + r.title + '.', r.id, 'returned', 'ed'); }
@@ -865,11 +1074,9 @@
         this.docBusy = true; this.docError = '';
         for (const f of files) {
           try {
-            const isImg = f.type.startsWith('image/');
-            if (!isImg && f.size > DOC_LIMIT) { this.docError = f.name + ' is larger than 1 MB. In the prototype, attach a smaller file.'; continue; }
-            const src = isImg ? await shrinkImage(f, 1600) : await readAsDataUrl(f);
-            this.form.attachments.push({ id: 'a' + Date.now() + Math.random().toString(36).slice(2, 6), kind: guessKind(f.name), name: f.name, type: isImg ? 'image/jpeg' : (f.type || 'application/octet-stream'), size: Math.round(src.length * 0.75), src, by: this.actor, at: nowIso() });
-          } catch (err) { this.docError = 'Could not read ' + f.name + '.'; }
+            const up = await storeFile(f, 1600);
+            this.form.attachments.push({ id: 'a' + Date.now() + Math.random().toString(36).slice(2, 6), fileId: up.id, kind: guessKind(f.name), name: up.name, type: up.type, size: up.size, src: up.url, by: this.actor, at: nowIso() });
+          } catch (err) { this.docError = f.name + ': ' + err.message; }
         }
         this.docBusy = false;
       },
@@ -913,7 +1120,7 @@
       saveForm(submit) {
         if (submit && !this.isDirector) return;
         if (!this.form.title.trim()) { this.formErrors = { title: 'Add a title before saving.' }; return; }
-        if (this.docBusy) { this.docError = 'Wait for the files to finish loading.'; return; }
+        if (this.docBusy) { this.docError = 'Wait for the files to finish uploading.'; return; }
         if (submit && !this.validate()) { this.notify('Some fields need attention.', 'bad'); return; }
         const f = this.form;
         const fields = { title: f.title.trim(), description: f.description.trim(), category: f.category || this.suggestedCategory || 'Others', municipality: f.municipality, barangays: [...f.barangays], start: f.start, end: f.end || f.start, budget: Number(f.budget || 0), beneficiaries: Number(f.beneficiaries || 0), sectors: [...f.sectors], partners: f.partners, attachments: f.attachments.map(d => ({ ...d })) };
@@ -926,13 +1133,16 @@
         const top = fields.barangays.length ? this.overlapCandidates(r)[0] : null;
         r.overlap = top && top.score >= 70 ? { score: top.score, match: top, terms: top.terms, resolution: null } : null;
         if (submit) {
+          const resubmitted = r.status === 'returned';
           this.move(r, 'submitted');
-          this.pushNotification(this.person('ed').name + ' submitted ' + r.title + ' for your approval' + (r.overlap ? '. EXTRACK flagged a possible overlap.' : '.'), r.id, 'request', 'cd');
-          this.notify(r.overlap ? 'Submitted to the Campus Director, with the overlap warning attached.' : 'Submitted to the Campus Director.');
+          this.pushNotification(this.person('ed').name + (resubmitted ? ' resubmitted ' : ' submitted ') + r.title + ' for your approval' + (r.overlap ? '. EXTRACK flagged a possible overlap.' : '.'), r.id, 'request', 'cd');
+          this.showAlert({ title: resubmitted ? 'Request resubmitted' : 'Request submitted',
+            message: '"' + r.title + '" was sent to ' + this.person('cd').name + ' (Campus Director) for approval.',
+            notes: this.submitNotes(r), next: 'You will get a notification when the Campus Director approves or returns it.', ref: r.id });
         } else this.notify('Saved as a draft.');
         this.form = emptyForm();
         this.view = 'requests'; this.filter = { tab: submit ? 'waiting' : 'drafts', q: '', status: '', category: '' };
-        this.open(r.id);
+        if (!submit) this.open(r.id);
       },
     };
   }
@@ -978,17 +1188,21 @@
         if (m.kind === 'approve') {
           if (r.overlap && m.resolution) Object.assign(r.overlap, { resolution: m.resolution, resolvedBy: 'cd' });
           this.move(r, 'for_president', remark);
-          this.pushNotification('The Campus Director approved ' + r.title + '. It is now with the President.', r.id, 'approved', 'ed');
-          this.pushNotification('The Balilihan Campus Director approved ' + r.title + '. It needs your final approval.', r.id, 'request', 'pres');
-          this.notify('Approved. Sent to the University President for final approval.');
+          this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It is now with the President.', r.id, 'approved', 'ed');
+          this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It needs your final approval.', r.id, 'request', 'pres');
+          this.showAlert({ title: 'Request approved', message: '"' + r.title + '" is approved for Balilihan Campus and sent to ' + this.person('pres').name + ' (University President) for final approval.',
+            notes: [m.resolution ? 'Overlap decision recorded: ' + { allow: 'allow both', coordinate: 'the campuses will coordinate' }[m.resolution] + '.' : ''],
+            next: 'The Extension Director has been notified.', ref: r.id });
         } else if (m.kind === 'return') {
           this.move(r, 'returned', remark);
           this.pushNotification('The Campus Director returned ' + r.title + ': ' + remark, r.id, 'returned', 'ed');
-          this.notify('Returned to the Extension Director with your remark.', 'warn');
+          this.showAlert({ tone: 'warn', title: 'Request returned', message: '"' + r.title + '" was returned to ' + this.person('ed').name + ' (Extension Director) to revise.',
+            notes: ['Your remark: ' + remark], next: 'It comes back to you when it is resubmitted.', ref: r.id });
         } else {
           this.move(r, 'declined', remark);
           this.pushNotification('The Campus Director declined ' + r.title + '.', r.id, 'returned', 'ed');
-          this.notify('Request declined.', 'bad');
+          this.showAlert({ tone: 'bad', title: 'Request declined', message: '"' + r.title + '" is closed and will not go to the President.',
+            notes: ['Your remark: ' + remark], next: 'The Extension Director has been notified.', ref: r.id });
         }
         if (remark) r.remarks.push({ at: nowIso(), by: this.actor, body: remark });
         this.modal = null;
@@ -1029,7 +1243,7 @@
       campus: null,
       tabs: [['waiting', 'Waiting for you'], ['all', 'All'], ['running', 'Approved and ongoing'], ['completed', 'Completed'], ['stopped', 'Returned or declined']],
       get isDirector() { return true; },
-      statusText(r) { return { submitted: 'With the Campus Director', for_president: 'Waiting for you' }[r.status] || STATUS[r.status].label; },
+      statusText(r) { return { submitted: 'With the Campus Director of ' + this.campusName(r), for_president: 'Waiting for you' }[r.status] || STATUS[r.status].label; },
 
       get visible() { return this.requests.filter(r => !['draft', 'archived'].includes(r.status)); },
       get queue() { return this.requests.filter(r => r.status === 'for_president').sort((a, b) => this.lastEvent(a).at.localeCompare(this.lastEvent(b).at)); },
@@ -1083,6 +1297,158 @@
           .filter(r => { const k = [r.code, r.overlap.match.code].sort().join('|'); if (seen.has(k)) return false; seen.add(k); return true; });
       },
 
+      // ---------- budgets: the President sets the university total and divides it among the campuses ----------
+      budgetDraft: null,
+      openBudgets() {
+        // keep unsaved edits when coming back to the page
+        if (!this.budgetDraft) this.resetBudgets();
+        this.view = 'budgets'; this.selectedId = null;
+      },
+      resetBudgets() {
+        const fmt = n => Math.round(n).toLocaleString('en-PH');
+        this.budgetDraft = { error: '', total: fmt(this.db.universityBudget || 0), values: Object.fromEntries(CAMPUSES.map(c => [c, fmt(this.budgetOf(c).allocation)])) };
+      },
+      money(v) { return Number(String(v).replace(/[,\s₱]/g, '')); },
+      moneyOk(v) { const n = this.money(v); return String(v).trim() !== '' && Number.isFinite(n) && n >= 0; },
+      budgetAmount(c) { return this.money(this.budgetDraft.values[c]); },
+      budgetValid(c) { return this.moneyOk(this.budgetDraft.values[c]); },
+      tidyBudget(c) { if (this.budgetValid(c)) this.budgetDraft.values[c] = Math.round(this.budgetAmount(c)).toLocaleString('en-PH'); },
+      tidyTotal() { const d = this.budgetDraft; if (this.moneyOk(d.total)) d.total = Math.round(this.money(d.total)).toLocaleString('en-PH'); },
+      // one card per campus: the amount being typed, measured against what the campus has already used
+      get budgetCards() {
+        if (!this.budgetDraft) return [];
+        return CAMPUSES.map(c => {
+          const b = this.budgetOf(c), amount = this.budgetValid(c) ? Math.round(this.budgetAmount(c)) : b.allocation;
+          const used = b.spent + b.committed, scale = Math.max(amount, used + b.pending, 1);
+          const w = v => Math.min(100, v / scale * 100) + '%';
+          return {
+            c, color: CAMPUS_COLORS[c], b, amount, used, remaining: amount - used,
+            changed: amount !== b.allocation, below: amount < used,
+            bars: { spent: w(b.spent), committed: w(b.committed), pending: w(b.pending), mark: w(amount) },
+            last: this.lastBudgetChange(c),
+          };
+        });
+      },
+      get budgetSummary() {
+        const cards = this.budgetCards, d = this.budgetDraft;
+        const saved = this.db.universityBudget || 0;
+        const total = d && this.moneyOk(d.total) ? Math.round(this.money(d.total)) : saved;
+        const allocated = sum(cards, x => x.amount), used = sum(cards, x => x.used);
+        const changed = cards.filter(x => x.changed).length + (total !== saved ? 1 : 0);
+        return { total, saved, totalChanged: total !== saved, allocated, reserve: total - allocated, used, pending: sum(cards, x => x.b.pending),
+          remaining: allocated - used, changed, allocatedPct: total ? Math.min(100, allocated / total * 100) : 0 };
+      },
+      get savedReserve() { return (this.db.universityBudget || 0) - sum(CAMPUSES, c => this.db.allocations[c] || 0); },
+      get budgetHistory() { return (this.db.budgetLog || []).filter(e => e.year === this.db.year).slice(0, 10); },
+      lastBudgetChange(c) { return (this.db.budgetLog || []).find(e => e.campus === c && e.year === this.db.year); },
+      budgetLogText(e) {
+        if (!e.campus) return 'University extension budget: ' + peso(e.from) + ' → ' + peso(e.to);
+        if (e.kind === 'topup') return e.campus + ' Campus topped up from the reserve: ' + peso(e.from) + ' → ' + peso(e.to);
+        return e.campus + ' Campus: ' + peso(e.from) + ' → ' + peso(e.to);
+      },
+      logBudget(campus, from, to, kind, reason) {
+        if (!this.db.budgetLog) this.db.budgetLog = [];
+        this.db.budgetLog.unshift({ at: nowIso(), by: this.actor, campus, year: this.db.year, from, to, kind: kind || 'set', reason: reason || '' });
+      },
+      saveBudgets() {
+        const d = this.budgetDraft;
+        if (!this.moneyOk(d.total)) { d.error = 'Enter the university extension budget, ₱0 or more.'; return; }
+        const bad = CAMPUSES.find(c => !this.budgetValid(c));
+        if (bad) { d.error = 'Enter an amount of ₱0 or more for ' + bad + ' Campus.'; return; }
+        d.error = '';
+        const sm = this.budgetSummary, changed = this.budgetCards.filter(x => x.changed);
+        if (!sm.changed) { this.notify('No budgets were changed.'); return; }
+        // budgets move money between campuses, so the President reviews the changes before they are saved
+        if (!(this.modal && this.modal.type === 'confirmBudgets')) { this.modal = { type: 'confirmBudgets' }; return; }
+        this.modal = null;
+        if (sm.totalChanged) { this.logBudget(null, sm.saved, sm.total); this.db.universityBudget = sm.total; }
+        changed.forEach(x => {
+          this.logBudget(x.c, x.b.allocation, x.amount);
+          // only Balilihan has working director accounts in the prototype
+          if (x.c === 'Balilihan') this.pushNotification('The University President set the Balilihan Campus extension budget for ' + this.db.year + ' to ' + peso(x.amount) + ' (was ' + peso(x.b.allocation) + ').', null, 'info', ['ed', 'cd']);
+        });
+        const below = changed.filter(x => x.below);
+        changed.forEach(x => { this.db.allocations[x.c] = x.amount; });
+        this.resetBudgets();
+        this.showAlert({
+          tone: below.length || sm.reserve < 0 ? 'warn' : 'ok',
+          title: 'Budgets saved',
+          message: 'The ' + this.db.year + ' extension budgets are saved. Remaining amounts and over-budget warnings now use the new figures.',
+          notes: [
+            sm.totalChanged ? 'University extension budget: ' + peso(sm.saved) + ' → ' + peso(sm.total) : '',
+            ...changed.map(x => x.c + ' Campus: ' + peso(x.b.allocation) + ' → ' + peso(x.amount)),
+            sm.reserve < 0 ? 'The campus budgets add up to ' + peso(-sm.reserve) + ' more than the university extension budget.' : 'University reserve: ' + peso(sm.reserve),
+            ...below.map(x => x.c + ' Campus has already used ' + peso(x.used) + ', so it is now over its budget.'),
+          ],
+          next: changed.some(x => x.c === 'Balilihan') ? 'The Balilihan Campus Extension Director and Campus Director have been notified.' : 'The campuses will see their budgets on their dashboards.',
+        });
+      },
+
+      // ---------- split the total among the campuses ----------
+      SPLITS: [
+        ['equal', 'Equally', 'Every campus gets the same amount.'],
+        ['shares', 'In the current shares', 'Each campus keeps its present share, scaled to the new total.'],
+        ['requests', 'By requests this year', 'Campuses with more extension requests get more.'],
+        ['barangays', 'By barangays served this year', 'Campuses that reached more barangays get more.'],
+      ],
+      splitWeights(method) {
+        const inYear = r => r.start.startsWith(String(this.db.year));
+        return Object.fromEntries(CAMPUSES.map(c => {
+          const rs = this.db.requests.filter(r => campusOf(r) === c && inYear(r) && r.status !== 'draft');
+          if (method === 'equal') return [c, 1];
+          if (method === 'shares') return [c, this.budgetValid(c) ? this.budgetAmount(c) : 0];
+          if (method === 'requests') return [c, rs.length];
+          return [c, new Set(rs.filter(r => ['approved', 'ongoing', 'completed', 'archived'].includes(r.status)).flatMap(r => r.barangays.map(b => b + ', ' + r.municipality))).size];
+        }));
+      },
+      askSplit() {
+        this.modal = { type: 'split', method: 'equal', keep: Math.max(0, this.budgetSummary.reserve).toLocaleString('en-PH'), error: '' };
+      },
+      // amounts are rounded down to the nearest ₱1,000; what is left over stays in the reserve
+      get splitPreview() {
+        const m = this.modal;
+        if (!m || m.type !== 'split') return null;
+        const total = this.budgetSummary.total, keep = this.moneyOk(m.keep) ? Math.round(this.money(m.keep)) : 0;
+        const pool = Math.max(0, total - keep), wts = this.splitWeights(m.method), wsum = sum(CAMPUSES, c => wts[c]);
+        const rows = CAMPUSES.map(c => ({ c, color: CAMPUS_COLORS[c], weight: wts[c], now: this.budgetCards.find(x => x.c === c).amount,
+          amount: wsum ? Math.floor(pool * wts[c] / wsum / 1000) * 1000 : 0 }));
+        return { rows, total, keep, reserve: total - sum(rows, r => r.amount), empty: !wsum, tooMuch: keep > total };
+      },
+      applySplit() {
+        const m = this.modal, p = this.splitPreview;
+        if (!this.moneyOk(m.keep)) { m.error = 'Enter the amount to keep in reserve, ₱0 or more.'; return; }
+        if (p.tooMuch) { m.error = 'The reserve cannot be more than the university extension budget.'; return; }
+        if (p.empty) { m.error = 'No campus has anything to count for this method yet. Choose another.'; return; }
+        p.rows.forEach(r => { this.budgetDraft.values[r.c] = r.amount.toLocaleString('en-PH'); });
+        this.modal = null;
+        this.notify('Campus amounts filled in. Check them, then save.');
+      },
+
+      // ---------- top up a campus from the reserve during the year ----------
+      askTopUp(c) {
+        if (this.budgetSummary.changed) { this.notify('Save or discard your changes first.', 'warn'); return; }
+        this.modal = { type: 'topup', campus: c, amount: '', reason: '', error: '' };
+      },
+      confirmTopUp() {
+        const m = this.modal, reserve = this.savedReserve;
+        const amount = Math.round(this.money(m.amount)), reason = m.reason.trim();
+        if (!this.moneyOk(m.amount) || amount <= 0) { m.error = 'Enter an amount more than ₱0.'; return; }
+        if (amount > reserve) { m.error = 'The reserve only has ' + peso(Math.max(0, reserve)) + '.'; return; }
+        if (!reason) { m.error = 'Add a reason, for example the request that needs it.'; return; }
+        const from = this.db.allocations[m.campus] || 0, to = from + amount;
+        this.db.allocations[m.campus] = to;
+        this.logBudget(m.campus, from, to, 'topup', reason);
+        if (m.campus === 'Balilihan') this.pushNotification('The University President added ' + peso(amount) + ' from the university reserve to the Balilihan Campus extension budget. It is now ' + peso(to) + '. Reason: ' + reason, null, 'info', ['ed', 'cd']);
+        this.modal = null;
+        this.resetBudgets();
+        this.showAlert({
+          title: 'Top-up added',
+          message: peso(amount) + ' moved from the university reserve to ' + m.campus + ' Campus.',
+          notes: [m.campus + ' Campus: ' + peso(from) + ' → ' + peso(to), 'University reserve left: ' + peso(reserve - amount), 'Reason: ' + reason],
+          next: m.campus === 'Balilihan' ? 'The Balilihan Campus Extension Director and Campus Director have been notified.' : 'The campus will see the new budget on its dashboard.',
+        });
+      },
+
       // ---------- final approval ----------
       askDecision(r, kind) { this.modal = { type: 'decide', kind, id: r.id, remark: '', resolution: null, error: '' }; },
       confirmDecision() {
@@ -1093,15 +1459,18 @@
         if (m.kind === 'approve') {
           this.move(r, 'approved', remark);
           this.pushNotification('The University President approved ' + r.title + '.', r.id, 'approved', to);
-          this.notify('Approved. The extension office can now start the service.');
+          this.showAlert({ title: 'Final approval given', message: '"' + r.title + '" from ' + this.campusName(r) + ' is approved. The extension office can now start the service.',
+            next: campusOf(r) === 'Balilihan' ? 'The Extension Director and the Campus Director have been notified.' : 'The ' + this.campusName(r) + ' extension office has been notified.', ref: r.id });
         } else if (m.kind === 'return') {
           this.move(r, 'returned', remark);
           this.pushNotification('The University President returned ' + r.title + ': ' + remark, r.id, 'returned', to);
-          this.notify('Returned to the ' + this.campusName(r) + ' Extension Director.', 'warn');
+          this.showAlert({ tone: 'warn', title: 'Request returned', message: '"' + r.title + '" was returned to the Extension Director of ' + this.campusName(r) + ' to revise.',
+            notes: ['Your remark: ' + remark], next: 'It comes back through the Campus Director of ' + this.campusName(r) + ' when it is resubmitted.', ref: r.id });
         } else {
           this.move(r, 'declined', remark);
           this.pushNotification('The University President declined ' + r.title + '.', r.id, 'returned', to);
-          this.notify('Request declined.', 'bad');
+          this.showAlert({ tone: 'bad', title: 'Request declined', message: '"' + r.title + '" from ' + this.campusName(r) + ' is closed and will not go ahead.',
+            notes: ['Your remark: ' + remark], next: 'The campus has been notified.', ref: r.id });
         }
         if (remark) r.remarks.push({ at: nowIso(), by: this.actor, body: remark });
         this.modal = null;

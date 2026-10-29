@@ -1,7 +1,13 @@
 {{-- ========== Extension map ========== --}}
 <section x-show="view==='map'">
   <div class="page-head"><div><h1>Extension map</h1>
-    <p>Barangays that have received extension services from any BISU campus. Select a pin to see what was done there. Use it to see where help has gone and to borrow ideas from other campuses.</p></div></div>
+    <p>Barangays that have received extension services from any BISU campus. Select a pin to see what was done there.
+      @if ($role === 'pres')
+        Use it to see which barangays have been reached and where services are concentrated across campuses.
+      @else
+        Use it to see where help has gone and to borrow ideas from other campuses.
+      @endif
+    </p></div></div>
 
   <div class="map-filters">
     <select x-model="mapFilter.campus" aria-label="Campus"><option value="">All campuses</option><template x-for="c in CAMPUSES" :key="c"><option :value="c" x-text="c + ' Campus'" :selected="mapFilter.campus===c"></option></template></select>

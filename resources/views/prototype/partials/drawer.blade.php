@@ -41,8 +41,8 @@
           <button type="button" class="btn primary" @click="askDecision(r,'approve')">Give final approval</button>
           <button type="button" class="btn ghost" @click="askDecision(r,'return')">Return</button>
           <button type="button" class="btn ghost danger" @click="askDecision(r,'decline')">Decline</button></div></template>
-        <p class="muted" x-show="r.status==='for_president'" x-text="'Approved for the campus by the ' + campusName(r) + ' Director ' + waitingSince(r) + (waitingSince(r) === 1 ? ' day' : ' days') + ' ago.'"></p>
-        <p class="muted" x-show="r.status==='submitted'" x-text="'Still with the ' + campusName(r) + ' Director. It comes to you after campus approval.'"></p>
+        <p class="muted" x-show="r.status==='for_president'" x-text="'Approved for the campus by the Campus Director of ' + campusName(r) + ' ' + waitingSince(r) + (waitingSince(r) === 1 ? ' day' : ' days') + ' ago.'"></p>
+        <p class="muted" x-show="r.status==='submitted'" x-text="'Still with the Campus Director of ' + campusName(r) + '. It comes to you after campus approval.'"></p>
         <p class="muted" x-show="r.status==='returned'">Returned to the campus extension office to revise and resubmit.</p>
         <p class="muted" x-show="r.status==='approved'">You gave final approval. The extension office will mark it as started.</p>
         <p class="muted" x-show="r.status==='ongoing'" x-text="r.end < TODAY ? 'The service has ended, but the campus has not submitted its accomplishment report.' : 'Being carried out by the campus extension office.'"></p>
@@ -57,13 +57,13 @@
       <div class="callout bad" x-show="r.overlap">
         <template x-if="r.overlap"><div>
           <div class="ov-head"><b>Possible overlap, <span x-text="r.overlap.score"></span>% similar</b>
-            <span class="pill t-muted" x-show="r.overlap.resolution" x-text="'Campus Director: ' + {allow:'allowed both', coordinate:'campuses will coordinate'}[r.overlap.resolution]"></span></div>
+            <span class="pill t-muted" x-show="r.overlap.resolution" x-text="'Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'campuses will coordinate'}[r.overlap.resolution]"></span></div>
           @if ($role === 'ed')
           <p class="muted" x-show="!r.overlap.resolution">You can still submit. The Campus Director decides how to handle this when reviewing the request.</p>
           @elseif ($role === 'cd')
           <p class="muted" x-show="!r.overlap.resolution">When you approve, choose whether to allow both or have the campuses coordinate. To ask for changes in place, dates or scope, return it instead.</p>
           @else
-          <p class="muted" x-show="r.overlap.resolution">The Campus Director made this decision. If the campuses should handle it differently, return the request with a remark.</p>
+          <p class="muted" x-show="r.overlap.resolution" x-text="'The Campus Director of ' + campusName(r) + ' made this decision. If the campuses should handle it differently, return the request with a remark.'"></p>
           @endif
           <div class="vs">
             <div><small>This request</small><p x-text="r.title"></p><small x-text="r.barangays.join(', ') + ', ' + fmtDate(r.start) + ' to ' + fmtDate(r.end)"></small></div>
@@ -97,10 +97,10 @@
       </div>
       <p class="muted" x-show="!docsOf(r).length">No documents attached.</p>
       <ul class="docs" x-show="docsOf(r).length">
-        <template x-for="d in docsOf(r)" :key="d.id">
+        <template x-for="(d, i) in docsOf(r)" :key="d.id">
           <li><span class="doc-ico" x-text="docExt(d)"></span>
             <span class="doc-meta"><b x-text="d.name"></b><small x-text="DOC_KINDS[d.kind] + ', ' + fmtSize(d.size) + (d.sample ? ', sample file' : '')"></small></span>
-            <button type="button" class="btn sm ghost" x-show="canView(d)" @click="viewDoc(d)">View</button>
+            <button type="button" class="btn sm ghost" @click="openDocs(docsOf(r), i)">View</button>
             <button type="button" class="btn sm ghost" @click="downloadDoc(d)">Download</button></li>
         </template>
       </ul>

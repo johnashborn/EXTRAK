@@ -30,15 +30,14 @@ class PrototypeAccessTest extends TestCase
             ->assertSee(route('prototype.president'), false);
     }
 
-    public function test_signed_in_users_see_each_dashboard_with_their_name(): void
+    public function test_signed_in_users_can_open_each_dashboard(): void
     {
-        $user = User::factory()->create(['name' => 'Ma. Elena Racines']);
+        $user = User::factory()->create();
 
         foreach (['extension-director' => '"ed"', 'campus-director' => '"cd"', 'president' => '"pres"'] as $page => $role) {
             $this->actingAs($user)
                 ->get('/prototype/'.$page)
                 ->assertOk()
-                ->assertSee('"name":"Ma. Elena Racines"', false)
                 ->assertSee('window.EXTRACK_ROLE = '.$role, false)
                 ->assertSee(route('filament.admin.auth.logout'), false);
         }

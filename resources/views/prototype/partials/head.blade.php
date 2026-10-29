@@ -6,7 +6,9 @@
 <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="{{ asset('css/prototype.css') }}">
 <script>try { if (localStorage.getItem('extrack.theme.v2') === 'dark') document.documentElement.setAttribute('data-theme', 'dark'); } catch (e) {}</script>
-<script>window.EXTRACK_USER = @json(['name' => auth()->user()->name, 'email' => auth()->user()->email]); window.EXTRACK_ROLE = @json($role);</script>
+<meta name="csrf-token" content="{{ csrf_token() }}">
+<script>window.EXTRACK_ROLE = @json($role);</script>
+<script>window.EXTRACK_SERVER = @json($prototypeServer);</script>
 <script defer src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script defer src="{{ asset('js/prototype/extrack.js') }}"></script>
 <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.14.1/dist/cdn.min.js"></script>

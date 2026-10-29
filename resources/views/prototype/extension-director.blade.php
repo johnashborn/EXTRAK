@@ -29,7 +29,7 @@
     <label for="actor">Signed in as</label>
     <select id="actor" x-model="actor">
       <option value="ed">Extension Director</option>
-      <option value="asst">Assistant (Joy Cruz)</option>
+      <option value="asst">Assistant (Miss Jaquelyn L. Omapas)</option>
     </select>
     <p class="proto-note" x-show="!isDirector">Assistants can encode and save drafts but cannot approve or submit.</p>
     <a class="link" href="{{ route('prototype.campus-director') }}">Open the Campus Director dashboard</a>
@@ -46,10 +46,12 @@
 
 {{-- ========== Dashboard ========== --}}
 <section x-show="view==='dashboard'">
-  <div class="page-head">
+  <div class="page-head hero-banner">
+    <div class="hero-art" aria-hidden="true"></div>
     <div>
       <h1><span x-text="greeting()"></span>, <span x-text="me.name.split(' ').slice(0,2).join(' ')"></span>.</h1>
       <p>Here is where Balilihan Campus extension work stands on <span x-text="todayLabel()"></span>.</p>
+      <p class="core-values"><b>B</b>alance · <b>I</b>ntegrity · <b>U</b>prightness · <b>S</b>tewardship</p>
     </div>
     <button type="button" class="btn primary" @click="newRequest()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New request</button>
   </div>
@@ -151,20 +153,29 @@
           <p class="err" x-show="formErrors.beneficiaries" x-text="formErrors.beneficiaries"></p></div>
       </div>
       <fieldset class="field"><legend>Beneficiary sectors</legend>
-        <div class="chips pick"><template x-for="s in SECTORS" :key="s">
-          <button type="button" :aria-pressed="form.sectors.includes(s)" @click="toggle(form.sectors, s)" x-text="s"></button></template></div></fieldset>
+        <div class="chips pick"><template x-for="s in allSectors" :key="s">
+          <button type="button" :aria-pressed="form.sectors.includes(s)" @click="toggle(form.sectors, s)" x-text="s"></button></template>
+          <button type="button" class="add-chip" x-show="!addingSector" @click="addingSector = true; $nextTick(() => $refs.newSector.focus())">+ Add sector</button>
+          <span class="add-sector" x-show="addingSector">
+            <input x-ref="newSector" x-model="newSector" maxlength="40" placeholder="e.g. Indigenous peoples" aria-label="New beneficiary sector"
+              @keydown.enter.prevent="addSector()" @keydown.escape.stop="addingSector = false; newSector = ''">
+            <button type="button" class="btn sm primary" @click="addSector()">Add</button>
+            <button type="button" class="btn sm ghost" @click="addingSector = false; newSector = ''">Cancel</button>
+          </span></div>
+        <p class="hint">Not listed? Add it. New sectors stay in the list for later requests.</p></fieldset>
       <div class="field"><label for="f-part">Partner agencies or LGU <span class="opt">optional</span></label><input id="f-part" x-model="form.partners" placeholder="e.g. BFAR Region 7, Barangay Council"></div>
       <div class="field"><label>Supporting documents</label>
-        <p class="hint">Attach the barangay letter of request and the project proposal, plus a budget breakdown or MOA if you have one. The Campus Director and the University President see these files. PDF, Word, Excel or photos, up to 1 MB each in the prototype.</p>
+        <p class="hint">Attach the barangay letter of request and the project proposal, plus a budget breakdown or MOA if you have one. The Campus Director and the University President see these files. PDF, Word, Excel or photos, up to 20 MB each.</p>
         <label class="drop"><input type="file" multiple class="sr" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" @change="addDocs($event)">
           <svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
-          <span x-text="docBusy ? 'Adding files…' : 'Choose files'"></span></label>
+          <span x-text="docBusy ? 'Uploading…' : 'Choose files'"></span></label>
         <p class="err" x-show="docError" x-text="docError"></p>
         <ul class="docs edit" x-show="form.attachments.length">
           <template x-for="(d, i) in form.attachments" :key="d.id">
             <li><span class="doc-ico" x-text="docExt(d)"></span>
               <span class="doc-meta"><b x-text="d.name"></b><small x-text="fmtSize(d.size)"></small></span>
               <select x-model="d.kind" aria-label="Document type"><template x-for="(label, k) in DOC_KINDS" :key="k"><option :value="k" x-text="label" :selected="d.kind===k"></option></template></select>
+              <button type="button" class="btn sm ghost" @click="openDocs(form.attachments, i)">View</button>
               <button type="button" class="btn sm ghost" @click="removeDoc(i)">Remove</button></li>
           </template>
         </ul></div>
