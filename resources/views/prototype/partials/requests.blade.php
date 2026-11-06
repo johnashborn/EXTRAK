@@ -1,19 +1,19 @@
 {{-- ========== Requests list ========== --}}
 <section x-show="view==='requests'">
   <div class="page-head">
-    <div><h1>Requests</h1><p>{{ $intro }}</p></div>
+    <h1>Requests</h1>
     @if ($role === 'ed')
-    <button type="button" class="btn primary" @click="newRequest()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New request</button>
+    <button type="button" class="btn primary" @click="newRequest()"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New request</button>
     @endif
   </div>
-  <div class="tabs" role="tablist">
+  <div class="tabs" role="group" aria-label="Show">
     <template x-for="t in tabs" :key="t[0]">
-      <button type="button" role="tab" :aria-selected="filter.tab===t[0]" @click="filter.tab=t[0]"><span x-text="t[1]"></span><small x-text="tabCount(t[0])"></small></button>
+      <button type="button" :aria-pressed="filter.tab===t[0]" @click="filter.tab=t[0]"><span x-text="t[1]"></span><small x-text="tabCount(t[0])"></small></button>
     </template>
   </div>
   <div class="panel flush">
     <div class="filters">
-      <input type="search" placeholder="Search title, code or barangay" x-model="filter.q" aria-label="Search requests">
+      <input type="search" placeholder="Search title, code or barangay…" x-model="filter.q" aria-label="Search requests">
       <select x-model="filter.status" aria-label="Status"><option value="">Any status</option><template x-for="(s,k) in STATUS" :key="k"><option :value="k" x-text="s.label"></option></template></select>
       @if ($role === 'pres')
       <select x-model="filter.campus" aria-label="Campus"><option value="">All campuses</option><template x-for="c in CAMPUSES" :key="c"><option :value="c" x-text="c + ' Campus'" :selected="filter.campus===c"></option></template></select>

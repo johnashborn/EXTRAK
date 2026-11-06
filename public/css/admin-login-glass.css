@@ -12,7 +12,7 @@
 .extrak-art{
   position:fixed; inset:0; z-index:0; width:auto;
   display:flex; flex-direction:column; justify-content:space-between; gap:28px;
-  padding:40px clamp(28px,5vw,72px) 44px; padding-right:max(46vw,520px);
+  padding:40px clamp(28px,5vw,72px) 44px; padding-right:max(48vw,600px);
   color:var(--x-ink); overflow:hidden; font-family:'Public Sans','Segoe UI',system-ui,sans-serif;
   background-color:var(--x-deep);
   /* glows give the glass something to blur even before a photo is added; photo goes underneath: public/images/campus.jpg */
@@ -46,7 +46,7 @@ body:has(.extrak-art){background:#171440}
 body:has(.extrak-art) .fi-simple-layout{position:relative; z-index:2; margin-left:0; background:transparent}
 body:has(.extrak-art) .fi-simple-main-ctn{justify-content:flex-end; padding-right:clamp(24px,7vw,120px)}
 body:has(.extrak-art) .fi-simple-main{
-  max-width:27rem; width:100%; padding:2.6rem 2.4rem !important; border-radius:26px !important; color:#fff;
+  max-width:32rem; width:100%; padding:2.75rem 2.75rem !important; border-radius:26px !important; color:#fff;
   background:linear-gradient(145deg,rgba(255,255,255,.26),rgba(255,255,255,.08)) !important;
   -webkit-backdrop-filter:blur(24px) saturate(150%); backdrop-filter:blur(24px) saturate(150%);
   border:1px solid rgba(255,255,255,.38);
@@ -120,4 +120,24 @@ body:has(.extrak-art) .fi-fo-field-wrp-hint *{
 body:has(.extrak-art) .fi-simple-main a:hover{
   color:#fff !important;
   text-decoration:underline;
+}
+
+/* ---------- role tabs: one row of words, the chosen one underlined ---------- */
+body:has(.extrak-art) .x-roles{
+  display:flex !important; justify-content:space-between; width:100% !important; gap:20px; background:none !important; border:0 !important;
+  border-bottom:1px solid rgba(255,255,255,.22) !important; border-radius:0 !important; box-shadow:none !important; overflow:visible;
+}
+body:has(.extrak-art) .x-roles label{
+  flex:0 1 auto; min-width:0; justify-content:flex-start; text-align:left; padding:6px 0 9px !important; margin-bottom:-1px;
+  font-size:13px; line-height:1.3; font-weight:600; color:rgba(255,255,255,.66) !important;
+  background:none !important; border:0 !important; border-bottom:2px solid transparent !important; border-radius:0 !important; box-shadow:none !important;
+  transition:color .15s, border-color .15s;
+}
+body:has(.extrak-art) .x-roles label .fi-btn-label{white-space:normal}
+body:has(.extrak-art) .x-roles label:hover{color:#fff !important; border-bottom-color:rgba(255,255,255,.45) !important}
+body:has(.extrak-art) .x-roles input:checked + label{color:#fff !important; border-bottom-color:#EBCB6B !important}
+body:has(.extrak-art) .x-roles input:focus-visible + label{outline:2px solid #EBCB6B; outline-offset:2px; border-radius:4px !important}
+@media (max-width:520px){
+  body:has(.extrak-art) .fi-simple-main{padding:2rem 1.5rem !important}
+  body:has(.extrak-art) .x-roles{flex-wrap:wrap; justify-content:flex-start; gap:2px 18px}
 }

@@ -1,7 +1,7 @@
 /* EXTRACK landing page. Theme: university violet and gold. Signature: the Bohol map, which runs a live overlap check in the hero and pins the campuses below. */
 :root{
   --bg:#F2F0F8; --surface:#FFFFFF; --surface-2:#F7F5FC; --line:#DDD8EC;
-  --ink:#1D1A3D; --ink-2:#55507A; --ink-3:#7A76A0;
+  --ink:#1D1A3D; --ink-2:#55507A; --ink-3:#67638C;
   --brand:#3A3272; --brand-ink:#FFFFFF; --brand-soft:#E6E2F5;
   --deep:#272150; --deep-2:#352E70; --deep-ink:#DAD6F0; --deep-dim:#A5A0CE;
   --gold:#E2BD52; --gold-hi:#EDCD70; --gold-soft:#F8EDC8; --gold-ink:#5E4A10;
@@ -16,7 +16,8 @@
   --brand:#8A7CE8; --brand-ink:#17123A; --brand-soft:#2B2660;
   --deep:#0E0C24; --deep-2:#1B1744;
   --gold-soft:#3A2F0C; --gold-ink:#F0D98A; --flag:#F28A74; --flag-soft:#3B1D17;
-  --land:#262252; --land-line:#423C7E; color-scheme:dark}}
+  --land:#262252; --land-line:#423C7E; color-scheme:dark}
+  :root:not([data-theme="light"]) .live-map .leaflet-tile-pane{filter:invert(1) hue-rotate(200deg) saturate(.5) brightness(.9) contrast(.9)}}
 :root[data-theme="dark"]{
   --bg:#12102B; --surface:#1C1941; --surface-2:#25214F; --line:#342F66;
   --ink:#ECEAFA; --ink-2:#B0ABD6; --ink-3:#8985B5;
@@ -24,9 +25,13 @@
   --deep:#0E0C24; --deep-2:#1B1744;
   --gold-soft:#3A2F0C; --gold-ink:#F0D98A; --flag:#F28A74; --flag-soft:#3B1D17;
   --land:#262252; --land-line:#423C7E; color-scheme:dark}
+:root[data-theme="dark"] .live-map .leaflet-tile-pane{filter:invert(1) hue-rotate(200deg) saturate(.5) brightness(.9) contrast(.9)}
 
 *{box-sizing:border-box}
-html{scroll-behavior:smooth}
+html{scroll-behavior:smooth;scroll-padding-top:16px}
+a,button{touch-action:manipulation}
+.skip{position:absolute;left:12px;top:-60px;z-index:10;background:var(--gold);color:#241A00;padding:10px 16px;border-radius:8px;font-weight:600;text-decoration:none}
+.skip:focus{top:12px}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 var(--f-body);-webkit-font-smoothing:antialiased}
 h1,h2,h3{font-family:var(--f-display);margin:0;letter-spacing:-.025em;text-wrap:balance;line-height:1.08}
 p,ul,ol,dl,dd,figure{margin:0;padding:0}
@@ -66,6 +71,16 @@ a{color:inherit}
 .preview{background:var(--surface);color:var(--ink);border-radius:18px;box-shadow:0 50px 90px -40px rgba(5,3,25,.8);overflow:hidden;min-width:0;transform:rotate(1.2deg)}
 .pv-map{position:relative;background:var(--surface-2);border-bottom:1px solid var(--line);padding:14px 14px 6px}
 .pv-map svg{display:block;width:100%;height:auto}
+.pv-live{position:absolute;inset:0;z-index:0;background:var(--surface-2);opacity:0;transition:opacity .4s ease}
+.pv-map.live .pv-live{opacity:1}
+.pv-map.live .pv-fallback{visibility:hidden}
+.pv-map .legend{z-index:1;background:color-mix(in srgb,var(--surface) 88%,transparent);padding:3px 8px;border-radius:6px}
+.live-map .leaflet-tile-pane{filter:saturate(.55)}
+.live-map .leaflet-control-attribution{font-size:9px;background:color-mix(in srgb,var(--surface) 80%,transparent);color:var(--ink-3)}
+.live-map .leaflet-control-attribution a{color:inherit}
+.pv-ring i{display:block;width:100%;height:100%;border:2.5px solid var(--flag);border-radius:50%;animation:pulse 2.4s ease-out 1s infinite}
+@keyframes pulse{0%{transform:scale(.7);opacity:1}70%{transform:scale(1.25);opacity:0}100%{transform:scale(1.25);opacity:0}}
+@media (prefers-reduced-motion: reduce){.pv-ring i{animation:none}}
 .land{fill:var(--land);stroke:var(--land-line);stroke-width:.7}
 .m.ong{fill:var(--s-ong)} .m.comp{fill:var(--s-comp)} .m.prop{fill:var(--s-prop)}
 .ring{fill:none;stroke:var(--flag);stroke-width:1.2;stroke-dasharray:100;stroke-dashoffset:0;animation:ring 1s cubic-bezier(.6,0,.3,1) .5s backwards}
@@ -80,11 +95,11 @@ a{color:inherit}
 .pc{font:800 34px/1 var(--f-display);color:var(--flag);text-align:right;font-variant-numeric:tabular-nums;letter-spacing:-.03em}
 .pc small{display:block;font:500 12px var(--f-body);letter-spacing:0;color:var(--ink-3);margin-top:4px}
 .meter{height:6px;border-radius:99px;background:var(--surface-2);border:1px solid var(--line);overflow:hidden}
-.meter i{display:block;height:100%;width:87%;background:var(--flag);border-radius:inherit;animation:fill 1.3s cubic-bezier(.2,.7,.2,1) .7s backwards}
+.meter i{display:block;height:100%;width:87%;background:var(--flag);border-radius:inherit;transform-origin:left center;animation:fill 1.3s cubic-bezier(.2,.7,.2,1) .7s backwards}
 .vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
 .vs div{border:1px solid var(--line);background:var(--surface-2);border-radius:10px;padding:10px 12px;font-size:13px;line-height:1.45;min-width:0}
 .vs div span{display:block;font-size:11.5px;font-weight:600;color:var(--ink-3);margin-bottom:4px}
-@keyframes fill{from{width:0}}
+@keyframes fill{from{transform:scaleX(0)}}
 @keyframes ring{from{stroke-dashoffset:100;opacity:0}}
 @keyframes fade{from{opacity:0;transform:translateY(3px)}}
 
@@ -130,6 +145,13 @@ section.s.band{background:var(--surface);border-block:1px solid var(--line)}
 .campus-list{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px;margin-top:12px;font-weight:600;font-size:15px}
 .campus-list li::before{content:"";display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--gold);margin-right:10px;vertical-align:1px}
 .campus-map{width:100%;height:auto;display:block}
+.campus-map-wrap{position:relative;border-radius:18px;overflow:hidden}
+.campus-live{position:absolute;inset:0;z-index:0;background:var(--surface-2);opacity:0;transition:opacity .4s ease}
+.campus-map-wrap.live .campus-live{opacity:1}
+.campus-map-wrap.live .pv-fallback{visibility:hidden}
+.campus-pin{fill:var(--gold);stroke:var(--deep)}
+.leaflet-tooltip.campus-label{background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:6px;box-shadow:0 4px 12px -6px rgba(5,3,25,.5);padding:2px 8px;font:600 13px var(--f-body)}
+.leaflet-tooltip.campus-label::before{display:none}
 .campus-map .land{stroke-width:.5}
 .pins circle{fill:var(--gold);stroke:var(--deep);stroke-width:1.2}
 .pins text{font:600 6.4px var(--f-body);fill:var(--ink)}

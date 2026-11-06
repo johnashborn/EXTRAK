@@ -1,25 +1,31 @@
 @php($role = 'cd')
+@php($noBudget = $noBudget ?? false)
+@php($dashboard = fn ($name) => route('prototype.' . $name))
 <!DOCTYPE html>
 <html lang="en">
 <head>
-@include('prototype.partials.head', ['title' => 'Campus Director'])
+@include('prototype.partials.head', ['noBudget' => $noBudget, 'title' => 'Campus Director'])
 </head>
-<body x-data="campusDirector" x-cloak>
+<body x-data="campusDirector" x-cloak :class="{ 'side-collapsed': sideCollapsed }">
+<a class="skip" href="#main">Skip to main content</a>
 
 {{-- ========== Sidebar ========== --}}
 <aside class="side">
+  <div class="side-head">
   <a class="brand" href="{{ url('/') }}"><img src="{{ asset('images/logo.png') }}" alt="" width="34" height="34"><span><b>EXTRACK</b><small>Balilihan Campus</small></span></a>
+    <button type="button" class="side-toggle" @click="toggleSide()" :aria-expanded="(!sideCollapsed).toString()" :aria-label="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'" :title="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+  </div>
   <nav class="side-nav" aria-label="Sections">
-    <button type="button" :class="{on: view==='dashboard'}" @click="view='dashboard'; selectedId=null">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
-    <button type="button" :class="{on: view==='requests' && filter.tab==='waiting'}" @click="openList('waiting')">
-      <svg viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7.5"/></svg>For approval<span class="count" x-show="waitingForMe.length" x-text="waitingForMe.length"></span></button>
-    <button type="button" :class="{on: view==='requests' && filter.tab!=='waiting'}" @click="openList('all')">
-      <svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>All requests</button>
-    <button type="button" :class="{on: view==='map'}" @click="view='map'; selectedId=null">
-      <svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>Extension map</button>
-    <button type="button" :class="{on: view==='archive'}" @click="view='archive'; selectedId=null">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
+    <button type="button" :class="{on: view==='dashboard'}" @click="view='dashboard'; selectedId=null" :title="sideCollapsed ? 'Dashboard' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
+    <button type="button" :class="{on: view==='requests' && filter.tab==='waiting'}" @click="openList('waiting')" :title="sideCollapsed ? 'For approval' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.5 17 19 7.5"/></svg>For approval<span class="count" x-show="waitingForMe.length" x-text="waitingForMe.length"></span></button>
+    <button type="button" :class="{on: view==='requests' && filter.tab!=='waiting'}" @click="openList('all')" :title="sideCollapsed ? 'All requests' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>All requests</button>
+    <button type="button" :class="{on: view==='map'}" @click="view='map'; selectedId=null" :title="sideCollapsed ? 'Extension map' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>Extension map</button>
+    <button type="button" :class="{on: view==='archive'}" @click="view='archive'; selectedId=null" :title="sideCollapsed ? 'Archive' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
   </nav>
 
   <div class="proto">
@@ -31,8 +37,8 @@
     </select>
     <p class="proto-note" x-show="!isDirector">Assistants can review and add remarks but cannot approve, return or decline.</p>
     <button type="button" class="link" @click="simulateNewRequest()">Simulate a new request from the Extension Director</button>
-    <a class="link" href="{{ route('prototype.extension-director') }}">Open the Extension Director dashboard</a>
-    <a class="link" href="{{ route('prototype.president') }}">Open the University President dashboard</a>
+    <a class="link" href="{{ $dashboard('extension-director') }}">Open the Extension Director dashboard</a>
+    <a class="link" href="{{ $dashboard('president') }}">Open the University President dashboard</a>
     <button type="button" class="link" @click="resetDemo()">Reset demo data</button>
   </div>
 
@@ -41,7 +47,7 @@
 
 @include('prototype.partials.topbar', ['where' => 'Office of the Campus Director, Balilihan Campus'])
 
-<main class="main">
+<main class="main" id="main" tabindex="-1">
 
 {{-- ========== Dashboard ========== --}}
 <section x-show="view==='dashboard'">
@@ -52,7 +58,6 @@
       <p>Here is what needs your decision at Balilihan Campus on <span x-text="todayLabel()"></span>. You see only this campus's requests.</p>
       <p class="core-values"><b>B</b>alance · <b>I</b>ntegrity · <b>U</b>prightness · <b>S</b>tewardship</p>
     </div>
-    <button type="button" class="btn primary" @click="openList('waiting')" x-show="waitingForMe.length">Review requests</button>
   </div>
 
   <div class="tiles">
@@ -60,13 +65,18 @@
       <b x-text="waitingForMe.length"></b><span>Waiting for your approval</span><small>From the Extension Director</small></button>
     <button type="button" class="tile" :class="{bad: toResolve.length}" @click="openList('overlaps')">
       <b x-text="toResolve.length"></b><span>Overlaps to resolve</span><small>Similar work in the same area</small></button>
+    @if($noBudget)
+    <button type="button" class="tile" :class="{warn: waitingForMe.filter(r => missingDocs(r).length).length}" @click="openList('waiting')">
+      <b x-text="waitingForMe.filter(r => missingDocs(r).length).length"></b><span>Missing documents</span><small>Among requests waiting for you</small></button>
+    @else
     <button type="button" class="tile" :class="{warn: overBudget.length}" @click="openList('waiting')">
       <b x-text="overBudget.length"></b><span>Over remaining budget</span><small>Among requests waiting for you</small></button>
+    @endif
     <button type="button" class="tile" @click="openList('president')">
       <b x-text="withPresident.length"></b><span>With the President</span><small>Approved by you, waiting for final approval</small></button>
   </div>
 
-  <div class="grid-2">
+  <div @class(['grid-2' => ! $noBudget])>
     <article class="panel">
       <header class="panel-head"><h2>Waiting for your approval</h2><button type="button" class="link" @click="openList('waiting')" x-show="waitingForMe.length">See all</button></header>
       <template x-if="!waitingForMe.length"><p class="empty">Nothing is waiting for you. New requests from the Extension Director will show up here.</p></template>
@@ -91,7 +101,9 @@
       </ul>
     </article>
 
+    @unless($noBudget)
     @include('prototype.partials.dash-budget')
+    @endunless
   </div>
 
   <div class="grid-2">
@@ -115,13 +127,13 @@
   @include('prototype.partials.dash-coverage')
 </section>
 
-@include('prototype.partials.requests', ['intro' => 'Every extension request from the Balilihan Campus extension office. You approve them for the campus, then they go to the University President.'])
+@include('prototype.partials.requests')
 
 @include('prototype.partials.map')
 
 @include('prototype.partials.archive')
 
-@include('prototype.partials.notifications', ['notifIntro' => 'New requests from the extension office, the President\'s decisions and accomplishment reports.'])
+@include('prototype.partials.notifications')
 </main>
 
 @include('prototype.partials.drawer')

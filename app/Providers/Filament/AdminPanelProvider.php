@@ -39,7 +39,7 @@ class AdminPanelProvider extends PanelProvider
             ->font('Monserrat')
             ->darkMode(true)
             ->defaultThemeMode(ThemeMode::Light)
-            ->brandLogo(asset('images/logo.png'))
+            ->brandLogo(fn () => asset('images/logo.png'))
             ->brandLogoHeight('2.5rem')
             ->renderHook(
                 PanelsRenderHook::HEAD_END,

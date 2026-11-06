@@ -2,29 +2,26 @@
 
 namespace App\Http\Controllers\Prototype;
 
-use App\Actions\Prototype\SavePrototypeState;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Prototype\UpdatePrototypeStateRequest;
-use App\Models\PrototypeState;
+use App\Services\Prototype\DashboardDataStore;
 use Illuminate\Http\JsonResponse;
 
 class PrototypeStateController extends Controller
 {
-    public function show(): JsonResponse
+    public function show(DashboardDataStore $store): JsonResponse
     {
-        $state = PrototypeState::current();
-
         return response()->json([
-            'data' => $state?->data,
-            'version' => $state?->version ?? 0,
+            'data' => $store->export(),
+            'version' => $store->version(),
         ]);
     }
 
-    public function update(UpdatePrototypeStateRequest $request, SavePrototypeState $save): JsonResponse
+    public function update(UpdatePrototypeStateRequest $request, DashboardDataStore $store): JsonResponse
     {
-        // the whole document: validated() would keep only the keys that have rules (data.requests)
-        $state = $save($request->input('data'), $request->user());
+        // the whole document: validated() would keep only the keys that have rules
+        $version = $store->import($request->input('data'), $request->user());
 
-        return response()->json(['version' => $state->version]);
+        return response()->json(['version' => $version]);
     }
 }

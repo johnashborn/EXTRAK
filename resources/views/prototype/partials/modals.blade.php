@@ -1,5 +1,16 @@
 {{-- ========== Modals ========== --}}
 <div class="modal-wrap" x-show="modal" x-transition.opacity @click.self="modal=null">
+  {{-- confirmation before an action that cannot be undone, for every role --}}
+  <template x-if="modal && modal.type==='confirm'">
+    <div class="modal" role="alertdialog" aria-modal="true" aria-labelledby="cf-title" aria-describedby="cf-msg">
+      <h2 id="cf-title" x-text="modal.title"></h2>
+      <p id="cf-msg" x-text="modal.message"></p>
+      <div class="form-actions">
+        <button type="button" class="btn ghost" data-autofocus @click="modal=null">Cancel</button>
+        <button type="button" class="btn danger-fill" @click="confirmYes()" x-text="modal.confirm"></button>
+      </div>
+    </div>
+  </template>
   @if ($role === 'ed')
   <template x-if="modal && modal.type==='report'">
     <div class="modal wide" role="dialog" aria-modal="true" aria-labelledby="r-title">
@@ -11,17 +22,17 @@
         <div class="field"><label for="r-b">Actual budget used (₱)</label><input id="r-b" type="number" min="0" x-model="modal.actualBudget"></div>
         <div class="field"><label for="r-n">People reached</label><input id="r-n" type="number" min="0" x-model="modal.actualBeneficiaries"></div>
       </div>
-      <div class="field"><label for="r-t">What was done and what changed</label><textarea id="r-t" rows="4" x-model="modal.narrative" placeholder="e.g. 34 women completed the training. 12 now supply the town's pasalubong center."></textarea></div>
-      <div class="field"><label>Photos and attendance sheets</label>
-        <label class="drop"><input type="file" accept="image/*" multiple class="sr" @change="addPhotos($event)">
-          <svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
-          <span x-text="modal.busy ? 'Uploading photos…' : 'Add photos (JPG, PNG or WebP, up to 20 MB each)'"></span></label>
+      <div class="field"><label for="r-t">What was done and what changed</label><textarea id="r-t" rows="4" x-model="modal.narrative" placeholder="e.g. 34 women completed the training. 12 now supply the town’s pasalubong center."></textarea></div>
+      <fieldset class="field"><legend>Photos and attendance sheets</legend>
+        <label class="drop"><input type="file" accept="image/jpeg,image/png,image/webp,image/gif" multiple class="sr" @change="addPhotos($event)">
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
+          <span x-text="modal.busy ? 'Uploading photos…' : 'Add photos (JPG, PNG, WebP or GIF, up to 20 MB each)'"></span></label>
         <ul class="thumbs" x-show="modal.photos.length">
           <template x-for="(p, i) in modal.photos" :key="i">
-            <li><img :src="p.src" :alt="p.name"><button type="button" @click="removePhoto(i)" :aria-label="'Remove ' + p.name">&times;</button></li>
+            <li><img :src="p.src" :alt="p.name" width="96" height="72"><button type="button" @click="removePhoto(i)" :aria-label="'Remove ' + p.name">&times;</button></li>
           </template>
-        </ul></div>
-      <p class="err" x-show="modal.error" x-text="modal.error"></p>
+        </ul></fieldset>
+      <p class="err" role="alert" x-show="modal.error" x-text="modal.error"></p>
       <div class="form-actions">
         <button type="button" class="btn ghost" @click="modal=null">Cancel</button>
         <button type="button" class="btn ghost" @click="saveReport(false)">Save draft</button>
@@ -46,7 +57,7 @@
       </fieldset>
       <div class="field"><label for="m-remark" x-text="modal.kind==='approve' ? 'Remark (optional)' : 'Remark (required)'"></label>
         <textarea id="m-remark" rows="3" x-model="modal.remark" :placeholder="modal.kind==='approve' ? '' : 'What should the Extension Director change?'"></textarea></div>
-      <p class="err" x-show="modal.error" x-text="modal.error"></p>
+      <p class="err" role="alert" x-show="modal.error" x-text="modal.error"></p>
       <div class="form-actions">
         <button type="button" class="btn ghost" @click="modal=null">Cancel</button>
         <button type="button" class="btn" :class="modal.kind==='decline' ? 'danger-fill' : 'primary'" @click="confirmDecision()" x-text="{approve: role === 'pres' ? 'Give final approval' : 'Approve', return:'Return request', decline:'Decline request'}[modal.kind]"></button>
@@ -80,7 +91,7 @@
         </tbody>
         <tfoot><tr><td>University reserve</td><td></td><td class="n"><b x-text="peso(splitPreview.reserve)"></b></td></tr></tfoot>
       </table>
-      <p class="err" x-show="modal.error" x-text="modal.error"></p>
+      <p class="err" role="alert" x-show="modal.error" x-text="modal.error"></p>
       <div class="form-actions">
         <button type="button" class="btn ghost" @click="modal=null">Cancel</button>
         <button type="button" class="btn primary" @click="applySplit()">Fill in these amounts</button>
@@ -115,7 +126,7 @@
       </div>
       <p class="hint" x-text="budgetCards.some(x => x.changed && x.c === 'Balilihan') ? 'The Balilihan Campus Extension Director and Campus Director will be notified. Every change is recorded in the budget history.' : 'Every change is recorded in the budget history.'"></p>
       <div class="form-actions">
-        <button type="button" class="btn ghost" x-init="$nextTick(() => $el.focus())" @click="modal=null">Go back and edit</button>
+        <button type="button" class="btn ghost" data-autofocus @click="modal=null">Go back and edit</button>
         <button type="button" class="btn primary" @click="saveBudgets()">Yes, save budgets</button>
       </div>
     </div>
@@ -132,7 +143,7 @@
         <p class="hint" x-show="moneyOk(modal.amount) && money(modal.amount) > 0" x-text="'The campus budget becomes ' + peso((db.allocations[modal.campus] || 0) + Math.round(money(modal.amount))) + ', and ' + peso(savedReserve - Math.round(money(modal.amount))) + ' stays in the reserve.'"></p></div>
       <div class="field"><label for="tu-reason">Reason (required)</label>
         <textarea id="tu-reason" rows="3" x-model="modal.reason" @input="modal.error=''" placeholder="e.g. To cover BAL-2026-023, which is over the campus budget"></textarea></div>
-      <p class="err" x-show="modal.error" x-text="modal.error"></p>
+      <p class="err" role="alert" x-show="modal.error" x-text="modal.error"></p>
       <div class="form-actions">
         <button type="button" class="btn ghost" @click="modal=null">Cancel</button>
         <button type="button" class="btn primary" @click="confirmTopUp()">Add to the campus budget</button>
@@ -165,12 +176,12 @@
       </div>
       <div class="docview-actions">
         <template x-if="docView && docView.docs.length > 1"><div class="docview-pager">
-          <button type="button" class="icon-btn" @click="stepDoc(-1)" aria-label="Previous document"><svg viewBox="0 0 24 24"><path d="m15 6-6 6 6 6"/></svg></button>
+          <button type="button" class="icon-btn" @click="stepDoc(-1)" aria-label="Previous document"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
           <span x-text="(docView.i + 1) + ' of ' + docView.docs.length"></span>
-          <button type="button" class="icon-btn" @click="stepDoc(1)" aria-label="Next document"><svg viewBox="0 0 24 24"><path d="m9 6 6 6-6 6"/></svg></button>
+          <button type="button" class="icon-btn" @click="stepDoc(1)" aria-label="Next document"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
         </div></template>
-        <button type="button" class="btn sm ghost" @click="downloadDoc(docCurrent)"><svg viewBox="0 0 24 24"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>Download</button>
-        <button type="button" class="icon-btn docview-close" @click="closeDocs()" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        <button type="button" class="btn sm ghost" @click="downloadDoc(docCurrent)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>Download</button>
+        <button type="button" class="icon-btn docview-close" @click="closeDocs()" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </div>
     </header>
     <div class="docview-body">
@@ -188,9 +199,9 @@
       <div class="docview-docx" x-ref="docHost" x-show="docView && docView.format === 'docx' && docView.status === 'ready'"></div>
       <template x-if="docView && docView.status === 'ready' && docView.format === 'sheet'">
         <div class="docview-sheet">
-          <div class="tabs" role="tablist" x-show="docView?.sheets.length > 1">
+          <div class="tabs" role="group" aria-label="Sheets" x-show="docView?.sheets.length > 1">
             <template x-for="(s, i) in (docView?.sheets || [])" :key="i">
-              <button type="button" role="tab" :aria-selected="docView?.sheet === i" @click="docView.sheet = i" x-text="s.name"></button>
+              <button type="button" :aria-pressed="docView?.sheet === i" @click="docView.sheet = i" x-text="s.name"></button>
             </template>
           </div>
           <div class="sheet-table" x-html="docView?.sheets[docView.sheet]?.html || ''"></div>
@@ -206,9 +217,9 @@
     <div class="alert-card" :class="'a-' + alert.tone" role="alertdialog" aria-modal="true" aria-labelledby="al-title" aria-describedby="al-msg"
       x-init="$nextTick(() => $el.querySelector('.alert-done').focus())">
       <span class="alert-ico" aria-hidden="true">
-        <svg x-show="alert.tone === 'ok'" viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7.5"/></svg>
-        <svg x-show="alert.tone === 'warn'" viewBox="0 0 24 24"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
-        <svg x-show="alert.tone === 'bad'" viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg>
+        <svg x-show="alert.tone === 'ok'" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.5 17 19 7.5"/></svg>
+        <svg x-show="alert.tone === 'warn'" viewBox="0 0 24 24" aria-hidden="true"><path d="M9 14 4 9l5-5"/><path d="M4 9h10.5a5.5 5.5 0 0 1 0 11H11"/></svg>
+        <svg x-show="alert.tone === 'bad'" viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
       </span>
       <h2 id="al-title" x-text="alert.title"></h2>
       <p id="al-msg" x-text="alert.message"></p>

@@ -20,11 +20,11 @@
     <li><a href="{{ route('prototype.campus-director') }}">
       <b>Campus Director</b><span>Approve, return or decline the campus's requests before they go to the University President.</span></a></li>
     <li><a href="{{ route('prototype.president') }}">
-      <b>University President</b><span>Give final approval and see every campus's extension work and budget.</span></a></li>
+      <b>University President</b><span>Give final approval and see every campus's extension work.</span></a></li>
   </ul>
   <form method="POST" action="{{ route('filament.admin.auth.logout') }}" class="signout">
     @csrf
-    <button type="submit"><svg viewBox="0 0 24 24"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>Sign out ({{ auth()->user()->name }})</button>
+    <button type="submit"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M15 4h3a2 2 0 0 1 2 2v12a2 2 0 0 1-2 2h-3M10 17l-5-5 5-5M5 12h11"/></svg>Sign out ({{ auth()->user()->name }})</button>
   </form>
 </main>
 </body>

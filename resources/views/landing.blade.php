@@ -4,11 +4,18 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EXTRACK</title>
+<meta name="theme-color" content="#272150">
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://unpkg.com">
+<link rel="preconnect" href="https://a.tile.openstreetmap.org">
+<link rel="preconnect" href="https://b.tile.openstreetmap.org">
+<link rel="preconnect" href="https://c.tile.openstreetmap.org">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Montserrat:wght@500;600;700;800&family=Public+Sans:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
 <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
 <body>
+<a class="skip" href="#features">Skip to main content</a>
 {{-- Stylized Bohol outline, reused by the hero preview and the campus map --}}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -39,7 +46,9 @@
 
       <figure class="preview" aria-label="Example of an overlap warning in EXTRACK">
         <div class="pv-map">
-          <svg viewBox="0 0 210 135" role="img" aria-label="Map of Bohol with extension activities marked">
+          {{-- the same OpenStreetMap map as the dashboards; the drawing below shows until it loads, or if it cannot --}}
+          <div class="pv-live live-map" id="pv-live" role="img" aria-hidden="true" aria-label="Map of Bohol with extension activities marked"></div>
+          <svg class="pv-fallback" viewBox="0 0 210 135" role="img" aria-label="Map of Bohol with extension activities marked">
             <use href="#bohol" class="land"/><use href="#panglao" class="land"/>
             <g class="m ong"><circle cx="44" cy="46" r="3.6"/><circle cx="96" cy="40" r="2.8"/><circle cx="120" cy="96" r="2.8"/></g>
             <g class="m comp"><circle cx="150" cy="56" r="2.8"/><circle cx="66" cy="84" r="2.8"/><circle cx="172" cy="100" r="2.8"/></g>
@@ -76,7 +85,7 @@
       <h3>Catches overlaps even when the wording differs.</h3>
       <p>When the Extension Director describes a new service, EXTRACK compares its meaning, place and dates with existing work. A seaweed farming training and an aquaculture seminar in the same barangay get flagged, even though they share few exact words.</p>
     </div>
-    <div class="compare" aria-label="Example comparison of two activities">
+    <div class="compare" role="group" aria-label="Example comparison of two activities">
       <div class="pair">
         <article><span>New, Calape Campus</span><p>Training on <mark>seaweed</mark> farming and drying for coastal women, to add a second <mark>income</mark> source for <mark>fisherfolk</mark> households.</p></article>
         <article><span>Existing, Main Campus</span><p>Aquaculture skills seminar on <mark>seaweed</mark> and tilapia culture for <mark>fisherfolk</mark> families, focused on household <mark>income</mark>.</p></article>
@@ -112,7 +121,9 @@
     <p>The archive stays when directors change, so the next team starts from what was already done.</p>
     <ul class="campus-list"><li>Main Campus, Tagbilaran</li><li>Balilihan Campus</li><li>Bilar Campus</li><li>Calape Campus</li><li>Candijay Campus</li><li>Clarin Campus</li></ul>
   </div>
-  <svg class="campus-map" viewBox="0 0 210 135" role="img" aria-label="Map of Bohol showing the six BISU campuses">
+  <div class="campus-map-wrap">
+  <div class="campus-live live-map" id="campus-live" role="img" aria-hidden="true" aria-label="Map of Bohol showing the six BISU campuses"></div>
+  <svg class="campus-map pv-fallback" viewBox="0 0 210 135" role="img" aria-label="Map of Bohol showing the six BISU campuses">
     <use href="#bohol" class="land"/><use href="#panglao" class="land"/>
     <g class="pins">
       <g transform="translate(40 102)"><circle r="3.4"/><text x="-6" y="13" text-anchor="middle">Main</text></g>
@@ -123,13 +134,62 @@
       <g transform="translate(168 100)"><circle r="3.4"/><text x="0" y="-7" text-anchor="middle">Candijay</text></g>
     </g>
   </svg>
+  </div>
 </div></section>
 </main>
 
-<div class="closing"><div class="wrap row"><h2>Ready to log this term's activities?</h2><a class="btn gold" href="{{ url('/admin/login') }}">Sign in to EXTRACK</a></div></div>
+<div class="closing"><div class="wrap row"><h2>Ready to log this term’s activities?</h2><a class="btn gold" href="{{ url('/admin/login') }}">Sign in to EXTRACK</a></div></div>
 <footer><div class="wrap"><span>EXTRACK, Research, Innovation and Extension Office</span><span>Bohol Island State University</span></div></footer>
 
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
+  // The landing page maps: real Bohol from OpenStreetMap, fixed in place. The drawing stays if the map cannot load.
+  function liveMap(id, bounds) {
+    var el = document.getElementById(id);
+    if (!el || !window.L) return null;
+    var map = L.map(el, {
+      zoomControl: false, attributionControl: false, dragging: false, scrollWheelZoom: false, doubleClickZoom: false,
+      boxZoom: false, keyboard: false, touchZoom: false, tap: false, zoomSnap: 0.25,
+    });
+    map.fitBounds(bounds);
+    L.control.attribution({ position: 'bottomleft', prefix: false }).addAttribution('&copy; OpenStreetMap').addTo(map);
+    var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
+    tiles.once('load', function () {
+      el.parentNode.classList.add('live');
+      el.removeAttribute('aria-hidden');
+      el.parentNode.querySelector('.pv-fallback').setAttribute('aria-hidden', 'true');
+    });
+    return map;
+  }
+
+  // Hero: sample activities at their towns (approximate positions)
+  (function () {
+    var map = liveMap('pv-live', [[9.56, 123.78], [10.12, 124.6]]);
+    if (!map) return;
+    var pins = [
+      ['ong', 9.877, 123.893], ['prop', 9.869, 123.903], // the flagged pair in Sampoloc, Calape
+      ['ong', 9.7553, 123.9703], ['ong', 9.7095, 124.1083],
+      ['comp', 9.6476, 123.855], ['comp', 9.9617, 124.0247], ['comp', 9.8186, 124.4958],
+      ['prop', 9.9524, 123.9625], ['prop', 9.799, 123.8],
+    ];
+    pins.forEach(function (p) {
+      L.circleMarker([p[1], p[2]], { radius: 5.5, weight: 1.5, color: '#fff', fillOpacity: 1, className: 'm ' + p[0], interactive: false }).addTo(map);
+    });
+    L.marker([9.873, 123.898], { icon: L.divIcon({ className: 'pv-ring', html: '<i></i>', iconSize: [34, 34] }), interactive: false, keyboard: false }).addTo(map);
+  })();
+
+  // Campuses: one pin per campus town
+  (function () {
+    var map = liveMap('campus-live', [[9.58, 123.8], [10.05, 124.56]]);
+    if (!map) return;
+    [['Main', 9.6476, 123.855, 'bottom'], ['Balilihan', 9.7553, 123.9703, 'top'], ['Bilar', 9.7095, 124.1083, 'top'],
+      ['Calape', 9.8918, 123.8768, 'top'], ['Clarin', 9.9617, 124.0247, 'top'], ['Candijay', 9.8186, 124.4958, 'top']].forEach(function (c) {
+      L.circleMarker([c[1], c[2]], { radius: 7, weight: 2, className: 'campus-pin', fillOpacity: 1, interactive: false })
+        .bindTooltip(c[0], { permanent: true, direction: c[3], offset: [0, c[3] === 'top' ? -8 : 8], className: 'campus-label' })
+        .addTo(map);
+    });
+  })();
+
   // Count the hero similarity score up alongside the meter fill (skipped when reduced motion is on)
   (function () {
     var el = document.querySelector('[data-count]');

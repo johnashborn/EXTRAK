@@ -267,8 +267,9 @@ notifications       Laravel default
 
 ### Prototype storage (until the full build)
 
-- The prototype dashboards save their shared data as one JSON document in `prototype_states` (with a version number that other open dashboards check every few seconds), and uploaded photos and documents in `prototype_files`, with the files on the private local disk (`storage/app/private/prototype`). Files are served only to signed-in users, up to 20 MB each.
-- This is a stand-in so the proposal demo works across browsers and devices. The full build replaces it with the tables in section 10 and keeps the same file handling.
+- The prototype dashboards' data lives in the tables in section 10: `campuses`, `officials` (the people in the workflow, separate from login `users`), `categories`, `beneficiary_sectors`, `barangays`, `extension_requests` with `request_barangay`, `request_sector`, `request_events`, `request_remarks` and `overlap_flags`, `accomplishment_reports`, `attachments` (request documents and report photos), `dashboard_notifications`, `university_budgets`, `campus_budgets`, `budget_changes` and `settings`.
+- The dashboards still load and save everything at once. `App\Services\Prototype\DashboardDataStore` builds that from the tables and writes each save back into them, and bumps `settings.data_version`, which other open dashboards check every few seconds. Last save wins.
+- Uploaded photos and documents are recorded in `prototype_files`, with the files on the private local disk (`storage/app/private/prototype`). Files are served only to signed-in users, up to 20 MB each. Report photos accept JPG, PNG, WebP and GIF.
 
 ### Build order
 

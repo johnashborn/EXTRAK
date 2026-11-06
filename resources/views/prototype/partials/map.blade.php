@@ -1,13 +1,6 @@
 {{-- ========== Extension map ========== --}}
 <section x-show="view==='map'">
-  <div class="page-head"><div><h1>Extension map</h1>
-    <p>Barangays that have received extension services from any BISU campus. Select a pin to see what was done there.
-      @if ($role === 'pres')
-        Use it to see which barangays have been reached and where services are concentrated across campuses.
-      @else
-        Use it to see where help has gone and to borrow ideas from other campuses.
-      @endif
-    </p></div></div>
+  <div class="page-head"><h1>Extension map</h1></div>
 
   <div class="map-filters">
     <select x-model="mapFilter.campus" aria-label="Campus"><option value="">All campuses</option><template x-for="c in CAMPUSES" :key="c"><option :value="c" x-text="c + ' Campus'" :selected="mapFilter.campus===c"></option></template></select>
@@ -37,7 +30,7 @@
         <div class="map-detail">
           <header class="map-detail-head">
             <div><h2 x-text="mapPlace.name"></h2><p class="sub" x-text="mapPlace.services.length + (mapPlace.services.length === 1 ? ' extension service' : ' extension services')"></p></div>
-            <button type="button" class="icon-btn" @click="mapSel=null" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+            <button type="button" class="icon-btn" @click="mapSel=null" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
           </header>
 
           <ul class="map-pick" x-show="mapPlace.services.length > 1" aria-label="Services in this barangay">
@@ -65,7 +58,7 @@
               <p class="muted" x-show="!mapService.report">Ongoing. Photos and results come with the accomplishment report.</p>
               <ul class="gallery" x-show="photosOf(mapService).length">
                 <template x-for="(p, i) in photosOf(mapService)" :key="i">
-                  <li><button type="button" @click="openPhoto(photosOf(mapService), i)" :aria-label="'Open photo: ' + p.name"><img :src="p.src" :alt="p.name"></button><small x-text="p.name"></small></li>
+                  <li><button type="button" @click="openPhoto(photosOf(mapService), i)" :aria-label="'Open photo: ' + p.name"><img :src="p.src" :alt="p.name" width="160" height="120" loading="lazy"></button><small x-text="p.name"></small></li>
                 </template>
               </ul>
               <button type="button" class="btn ghost sm" x-show="isOwn(mapService)" @click="open(mapService.id)">Open full record</button>

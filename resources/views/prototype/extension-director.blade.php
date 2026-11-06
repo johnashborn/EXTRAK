@@ -1,27 +1,33 @@
 @php($role = 'ed')
+@php($noBudget = $noBudget ?? false)
+@php($dashboard = fn ($name) => route('prototype.' . $name))
 <!DOCTYPE html>
 <html lang="en">
 <head>
-@include('prototype.partials.head', ['title' => 'Extension Director'])
+@include('prototype.partials.head', ['noBudget' => $noBudget, 'title' => 'Extension Director'])
 </head>
-<body x-data="extensionDirector" x-cloak>
+<body x-data="extensionDirector" x-cloak :class="{ 'side-collapsed': sideCollapsed }">
+<a class="skip" href="#main">Skip to main content</a>
 
 {{-- ========== Sidebar ========== --}}
 <aside class="side">
+  <div class="side-head">
   <a class="brand" href="{{ url('/') }}"><img src="{{ asset('images/logo.png') }}" alt="" width="34" height="34"><span><b>EXTRACK</b><small>Balilihan Campus</small></span></a>
+    <button type="button" class="side-toggle" @click="toggleSide()" :aria-expanded="(!sideCollapsed).toString()" :aria-label="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'" :title="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+  </div>
   <nav class="side-nav" aria-label="Sections">
-    <button type="button" :class="{on: view==='dashboard'}" @click="view='dashboard'; selectedId=null">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
-    <button type="button" :class="{on: view==='requests'}" @click="openList('all')">
-      <svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Requests<span class="count" x-show="todo.length" x-text="todo.length" title="Needs your action"></span></button>
-    <button type="button" :class="{on: view==='new'}" @click="newRequest()">
-      <svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New request</button>
-    <button type="button" :class="{on: view==='reports'}" @click="view='reports'; selectedId=null">
-      <svg viewBox="0 0 24 24"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 13h5M10 16.5h5"/></svg>Accomplishment reports<span class="count" x-show="reportsDue.length" x-text="reportsDue.length" title="Reports overdue"></span></button>
-    <button type="button" :class="{on: view==='map'}" @click="view='map'; selectedId=null">
-      <svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>Extension map</button>
-    <button type="button" :class="{on: view==='archive'}" @click="view='archive'; selectedId=null">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
+    <button type="button" :class="{on: view==='dashboard'}" @click="view='dashboard'; selectedId=null" :title="sideCollapsed ? 'Dashboard' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
+    <button type="button" :class="{on: view==='requests'}" @click="openList('all')" :title="sideCollapsed ? 'Requests' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>Requests<span class="count" x-show="todo.length" x-text="todo.length" title="Needs your action"></span></button>
+    <button type="button" :class="{on: view==='new'}" @click="newRequest()" :title="sideCollapsed ? 'New request' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg>New request</button>
+    <button type="button" :class="{on: view==='reports'}" @click="view='reports'; selectedId=null" :title="sideCollapsed ? 'Accomplishment reports' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 13h5M10 16.5h5"/></svg>Accomplishment reports<span class="count" x-show="reportsDue.length" x-text="reportsDue.length" title="Reports overdue"></span></button>
+    <button type="button" :class="{on: view==='map'}" @click="view='map'; selectedId=null" :title="sideCollapsed ? 'Extension map' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>Extension map</button>
+    <button type="button" :class="{on: view==='archive'}" @click="view='archive'; selectedId=null" :title="sideCollapsed ? 'Archive' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
   </nav>
 
   <div class="proto">
@@ -32,8 +38,8 @@
       <option value="asst">Assistant (Miss Jaquelyn L. Omapas)</option>
     </select>
     <p class="proto-note" x-show="!isDirector">Assistants can encode and save drafts but cannot approve or submit.</p>
-    <a class="link" href="{{ route('prototype.campus-director') }}">Open the Campus Director dashboard</a>
-    <a class="link" href="{{ route('prototype.president') }}">Open the University President dashboard</a>
+    <a class="link" href="{{ $dashboard('campus-director') }}">Open the Campus Director dashboard</a>
+    <a class="link" href="{{ $dashboard('president') }}">Open the University President dashboard</a>
     <button type="button" class="link" @click="resetDemo()">Reset demo data</button>
   </div>
 
@@ -42,7 +48,7 @@
 
 @include('prototype.partials.topbar', ['where' => 'Balilihan Campus extension office'])
 
-<main class="main">
+<main class="main" id="main" tabindex="-1">
 
 {{-- ========== Dashboard ========== --}}
 <section x-show="view==='dashboard'">
@@ -53,7 +59,6 @@
       <p>Here is where Balilihan Campus extension work stands on <span x-text="todayLabel()"></span>.</p>
       <p class="core-values"><b>B</b>alance · <b>I</b>ntegrity · <b>U</b>prightness · <b>S</b>tewardship</p>
     </div>
-    <button type="button" class="btn primary" @click="newRequest()"><svg viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>New request</button>
   </div>
 
   <div class="tiles">
@@ -67,10 +72,10 @@
       <b x-text="overlapOpen.length"></b><span>Overlaps flagged</span><small>The Campus Director decides</small></button>
   </div>
 
-  <div class="grid-2">
+  <div @class(['grid-2' => ! $noBudget])>
     <article class="panel">
       <header class="panel-head"><h2>Needs your action</h2></header>
-      <template x-if="!todo.length"><p class="empty">You're all caught up. Returned requests, overdue reports and drafts will show up here.</p></template>
+      <template x-if="!todo.length"><p class="empty">You’re all caught up. Returned requests, overdue reports and drafts will show up here.</p></template>
       <ul class="rows">
         <template x-for="t in todo" :key="t.r.id + t.run">
           <li class="row-req">
@@ -86,7 +91,9 @@
       </ul>
     </article>
 
+    @unless($noBudget)
     @include('prototype.partials.dash-budget')
+    @endunless
   </div>
 
   <div class="grid-2">
@@ -113,63 +120,63 @@
   @include('prototype.partials.dash-coverage')
 </section>
 
-@include('prototype.partials.requests', ['intro' => 'Every extension request from the Balilihan Campus extension office. The Campus Director approves them, then the University President.'])
+@include('prototype.partials.requests')
 
 {{-- ========== New / edit request ========== --}}
 <section x-show="view==='new'">
   <div class="page-head">
     <div><h1 x-text="form.id ? 'Edit request' : 'New extension request'"></h1>
-      <p>Describe the service in plain words. EXTRACK suggests a category and checks every campus for similar work while you type. It goes to the Campus Director, then the University President.</p></div>
+      <p>EXTRACK checks every campus for similar work as you type. It goes to the Campus Director, then the President.</p></div>
   </div>
   <div class="form-grid">
     <form class="panel form" @submit.prevent="saveForm(true)" novalidate>
       <div class="field"><label for="f-title">Title</label>
-        <input id="f-title" x-model="form.title" placeholder="e.g. Tilapia pond culture training for farm families">
-        <p class="err" x-show="formErrors.title" x-text="formErrors.title"></p></div>
+        <input id="f-title" x-model="form.title" placeholder="e.g. Tilapia pond culture training for farm families…">
+        <p class="err" role="alert" x-show="formErrors.title" x-text="formErrors.title"></p></div>
       <div class="field"><label for="f-desc">Description</label>
         <textarea id="f-desc" rows="4" x-model="form.description" placeholder="What will you do, for whom, and what should change for the community?"></textarea>
-        <p class="err" x-show="formErrors.description" x-text="formErrors.description"></p></div>
+        <p class="err" role="alert" x-show="formErrors.description" x-text="formErrors.description"></p></div>
       <div class="two">
         <div class="field"><label for="f-cat">Category</label>
           <select id="f-cat" x-model="form.category"><option value="">Choose a category</option><template x-for="c in CATEGORIES" :key="c"><option :value="c" x-text="c" :selected="form.category===c"></option></template></select>
           <p class="hint" x-show="suggestedCategory && form.category !== suggestedCategory">Suggested: <button type="button" class="link" @click="form.category = suggestedCategory" x-text="suggestedCategory"></button></p>
-          <p class="err" x-show="formErrors.category" x-text="formErrors.category"></p></div>
+          <p class="err" role="alert" x-show="formErrors.category" x-text="formErrors.category"></p></div>
         <div class="field"><label for="f-mun">Municipality</label>
           <select id="f-mun" x-model="form.municipality" @change="form.barangays=[]"><template x-for="m in Object.keys(PLACES)" :key="m"><option :value="m" x-text="m" :selected="form.municipality===m"></option></template></select></div>
       </div>
-      <fieldset class="field"><legend>Barangays</legend>
+      <fieldset class="field" id="f-brgy"><legend>Barangays</legend>
         <div class="chips pick"><template x-for="b in PLACES[form.municipality]" :key="b">
           <button type="button" :aria-pressed="form.barangays.includes(b)" @click="toggle(form.barangays, b)" x-text="b"></button></template></div>
-        <p class="err" x-show="formErrors.barangays" x-text="formErrors.barangays"></p></fieldset>
+        <p class="err" role="alert" x-show="formErrors.barangays" x-text="formErrors.barangays"></p></fieldset>
       <div class="two">
         <div class="field"><label for="f-start">Start date</label><input id="f-start" type="date" x-model="form.start"></div>
         <div class="field"><label for="f-end">End date</label><input id="f-end" type="date" x-model="form.end" :min="form.start"></div>
       </div>
-      <p class="err" x-show="formErrors.dates" x-text="formErrors.dates"></p>
+      <p class="err" role="alert" x-show="formErrors.dates" x-text="formErrors.dates"></p>
       <div class="two">
         <div class="field"><label for="f-budget">Proposed budget (₱)</label><input id="f-budget" type="number" min="0" step="500" x-model="form.budget">
-          <p class="err" x-show="formErrors.budget" x-text="formErrors.budget"></p></div>
+          <p class="err" role="alert" x-show="formErrors.budget" x-text="formErrors.budget"></p></div>
         <div class="field"><label for="f-ben">Expected beneficiaries</label><input id="f-ben" type="number" min="0" x-model="form.beneficiaries">
-          <p class="err" x-show="formErrors.beneficiaries" x-text="formErrors.beneficiaries"></p></div>
+          <p class="err" role="alert" x-show="formErrors.beneficiaries" x-text="formErrors.beneficiaries"></p></div>
       </div>
       <fieldset class="field"><legend>Beneficiary sectors</legend>
         <div class="chips pick"><template x-for="s in allSectors" :key="s">
           <button type="button" :aria-pressed="form.sectors.includes(s)" @click="toggle(form.sectors, s)" x-text="s"></button></template>
           <button type="button" class="add-chip" x-show="!addingSector" @click="addingSector = true; $nextTick(() => $refs.newSector.focus())">+ Add sector</button>
           <span class="add-sector" x-show="addingSector">
-            <input x-ref="newSector" x-model="newSector" maxlength="40" placeholder="e.g. Indigenous peoples" aria-label="New beneficiary sector"
+            <input x-ref="newSector" x-model="newSector" maxlength="40" placeholder="e.g. Indigenous peoples…" aria-label="New beneficiary sector"
               @keydown.enter.prevent="addSector()" @keydown.escape.stop="addingSector = false; newSector = ''">
             <button type="button" class="btn sm primary" @click="addSector()">Add</button>
             <button type="button" class="btn sm ghost" @click="addingSector = false; newSector = ''">Cancel</button>
           </span></div>
         <p class="hint">Not listed? Add it. New sectors stay in the list for later requests.</p></fieldset>
       <div class="field"><label for="f-part">Partner agencies or LGU <span class="opt">optional</span></label><input id="f-part" x-model="form.partners" placeholder="e.g. BFAR Region 7, Barangay Council"></div>
-      <div class="field"><label>Supporting documents</label>
+      <fieldset class="field"><legend>Supporting documents</legend>
         <p class="hint">Attach the barangay letter of request and the project proposal, plus a budget breakdown or MOA if you have one. The Campus Director and the University President see these files. PDF, Word, Excel or photos, up to 20 MB each.</p>
         <label class="drop"><input type="file" multiple class="sr" accept=".pdf,.doc,.docx,.xls,.xlsx,image/*" @change="addDocs($event)">
-          <svg viewBox="0 0 24 24"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
+          <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 15V4M7.5 8.5 12 4l4.5 4.5M5 15v3.5a1.5 1.5 0 0 0 1.5 1.5h11a1.5 1.5 0 0 0 1.5-1.5V15"/></svg>
           <span x-text="docBusy ? 'Uploading…' : 'Choose files'"></span></label>
-        <p class="err" x-show="docError" x-text="docError"></p>
+        <p class="err" role="alert" x-show="docError" x-text="docError"></p>
         <ul class="docs edit" x-show="form.attachments.length">
           <template x-for="(d, i) in form.attachments" :key="d.id">
             <li><span class="doc-ico" x-text="docExt(d)"></span>
@@ -178,13 +185,13 @@
               <button type="button" class="btn sm ghost" @click="openDocs(form.attachments, i)">View</button>
               <button type="button" class="btn sm ghost" @click="removeDoc(i)">Remove</button></li>
           </template>
-        </ul></div>
+        </ul></fieldset>
       <div class="form-actions">
         <button type="button" class="btn ghost" @click="view='dashboard'">Cancel</button>
         <button type="button" class="btn ghost" @click="saveForm(false)">Save draft</button>
         <button type="submit" class="btn primary" :disabled="!isDirector" :title="isDirector ? '' : 'Only the Extension Director can submit'">Submit to Campus Director</button>
       </div>
-      <p class="hint right" x-show="!isDirector">You're signed in as the assistant. Save a draft and the Extension Director will submit it.</p>
+      <p class="hint right" x-show="!isDirector">You’re signed in as the assistant. Save a draft and the Extension Director will submit it.</p>
     </form>
 
     <aside class="panel checks" aria-live="polite">
@@ -203,6 +210,7 @@
         </template>
         <p class="hint" x-show="formChecks.matches.some(m => m.score >= 70)">You can still submit. The Campus Director will see this warning and decide.</p>
       </div>
+      @unless($noBudget)
       <div class="check-block">
         <h3>Budget</h3>
         <p class="muted" x-show="!formChecks.budget">Set a start date to see the budget impact.</p>
@@ -219,6 +227,7 @@
           </div>
         </template>
       </div>
+      @endunless
       <div class="check-block">
         <h3>Documents</h3>
         <p class="ok-line" x-show="!missingDocs(form).length">Barangay letter and project proposal attached.</p>
@@ -235,7 +244,7 @@
 {{-- ========== Accomplishment reports ========== --}}
 <section x-show="view==='reports'">
   <div class="page-head"><div><h1>Accomplishment reports</h1>
-    <p>Write the report when a service ends: actual dates, budget used, people reached, what changed, and photos. Submitted reports move the service to the archive.</p></div></div>
+    <p>Add the actual dates, budget used, people reached and photos. Submitting moves the service to the Archive.</p></div></div>
 
   <div class="grid-2">
     <article class="panel">
@@ -290,7 +299,7 @@
 
 @include('prototype.partials.archive')
 
-@include('prototype.partials.notifications', ['notifIntro' => 'Requests, approvals, overlaps and deadlines for the extension office.'])
+@include('prototype.partials.notifications')
 </main>
 
 @include('prototype.partials.drawer')

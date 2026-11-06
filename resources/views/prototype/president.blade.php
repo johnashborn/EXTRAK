@@ -1,34 +1,42 @@
 @php($role = 'pres')
+@php($noBudget = $noBudget ?? false)
+@php($dashboard = fn ($name) => route('prototype.' . $name))
 <!DOCTYPE html>
 <html lang="en">
 <head>
-@include('prototype.partials.head', ['title' => 'University President'])
+@include('prototype.partials.head', ['noBudget' => $noBudget, 'title' => 'University President'])
 </head>
-<body x-data="universityPresident" x-cloak>
+<body x-data="universityPresident" x-cloak :class="{ 'side-collapsed': sideCollapsed }">
+<a class="skip" href="#main">Skip to main content</a>
 
 {{-- ========== Sidebar ========== --}}
 <aside class="side">
+  <div class="side-head">
   <a class="brand" href="{{ url('/') }}"><img src="{{ asset('images/logo.png') }}" alt="" width="34" height="34"><span><b>EXTRACK</b><small>All campuses</small></span></a>
+    <button type="button" class="side-toggle" @click="toggleSide()" :aria-expanded="(!sideCollapsed).toString()" :aria-label="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'" :title="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
+  </div>
   <nav class="side-nav" aria-label="Sections">
-    <button type="button" :class="{on: view==='dashboard'}" @click="view='dashboard'; selectedId=null">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
-    <button type="button" :class="{on: view==='requests' && filter.tab==='waiting'}" @click="openList('waiting')">
-      <svg viewBox="0 0 24 24"><path d="M5 12.5 9.5 17 19 7.5"/></svg>Final approval<span class="count" x-show="queue.length" x-text="queue.length"></span></button>
-    <button type="button" :class="{on: view==='requests' && filter.tab!=='waiting'}" @click="openList('all')">
-      <svg viewBox="0 0 24 24"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>All requests</button>
-    <button type="button" :class="{on: view==='budgets'}" @click="openBudgets()">
-      <svg viewBox="0 0 24 24"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z"/><path d="M16 12h4M4 9h16"/><circle cx="16.5" cy="12" r=".6"/></svg>Campus budgets<span class="count soft" x-show="budgetDraft && budgetSummary.changed" x-text="budgetDraft ? budgetSummary.changed : ''" title="Unsaved changes"></span></button>
-    <button type="button" :class="{on: view==='map'}" @click="view='map'; selectedId=null">
-      <svg viewBox="0 0 24 24"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>Extension map</button>
-    <button type="button" :class="{on: view==='archive'}" @click="view='archive'; selectedId=null">
-      <svg viewBox="0 0 24 24"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
+    <button type="button" :class="{on: view==='dashboard'}" @click="view='dashboard'; selectedId=null" :title="sideCollapsed ? 'Dashboard' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="3.5" width="7" height="7" rx="1.5"/><rect x="3.5" y="13.5" width="7" height="7" rx="1.5"/><rect x="13.5" y="13.5" width="7" height="7" rx="1.5"/></svg>Dashboard</button>
+    <button type="button" :class="{on: view==='requests' && filter.tab==='waiting'}" @click="openList('waiting')" :title="sideCollapsed ? 'Final approval' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.5 17 19 7.5"/></svg>Final approval<span class="count" x-show="queue.length" x-text="queue.length"></span></button>
+    <button type="button" :class="{on: view==='requests' && filter.tab!=='waiting'}" @click="openList('all')" :title="sideCollapsed ? 'All requests' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 6h12M8 12h12M8 18h12M4 6h.01M4 12h.01M4 18h.01"/></svg>All requests</button>
+    @unless($noBudget)
+    <button type="button" :class="{on: view==='budgets'}" @click="openBudgets()" :title="sideCollapsed ? 'Campus budgets' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Z"/><path d="M16 12h4M4 9h16"/><circle cx="16.5" cy="12" r=".6"/></svg>Campus budgets<span class="count soft" x-show="budgetDraft && budgetSummary.changed" x-text="budgetDraft ? budgetSummary.changed : ''" title="Unsaved changes"></span></button>
+    @endunless
+    <button type="button" :class="{on: view==='map'}" @click="view='map'; selectedId=null" :title="sideCollapsed ? 'Extension map' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M9 4 3.5 6v14L9 18l6 2 5.5-2V4L15 6 9 4Z"/><path d="M9 4v14M15 6v14"/></svg>Extension map</button>
+    <button type="button" :class="{on: view==='archive'}" @click="view='archive'; selectedId=null" :title="sideCollapsed ? 'Archive' : null">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
   </nav>
 
   <div class="proto">
     <p class="proto-title">Prototype controls</p>
     <p class="proto-note">Only Balilihan Campus has working director dashboards. The other campuses are sample data.</p>
-    <a class="link" href="{{ route('prototype.extension-director') }}">Open the Extension Director dashboard</a>
-    <a class="link" href="{{ route('prototype.campus-director') }}">Open the Campus Director dashboard</a>
+    <a class="link" href="{{ $dashboard('extension-director') }}">Open the Extension Director dashboard</a>
+    <a class="link" href="{{ $dashboard('campus-director') }}">Open the Campus Director dashboard</a>
     <button type="button" class="link" @click="resetDemo()">Reset demo data</button>
   </div>
 
@@ -37,7 +45,7 @@
 
 @include('prototype.partials.topbar', ['where' => 'Office of the University President, all campuses'])
 
-<main class="main">
+<main class="main" id="main" tabindex="-1">
 
 {{-- ========== Dashboard ========== --}}
 <section x-show="view==='dashboard'">
@@ -48,18 +56,19 @@
       <p>Extension work across all six BISU campuses on <span x-text="todayLabel()"></span>.</p>
       <p class="core-values"><b>B</b>alance · <b>I</b>ntegrity · <b>U</b>prightness · <b>S</b>tewardship</p>
     </div>
-    <button type="button" class="btn primary" @click="openList('waiting')" x-show="queue.length">Review requests</button>
   </div>
 
-  <div class="tiles">
+  <div @class(['tiles', 'three' => $noBudget])>
     <button type="button" class="tile" @click="openList('waiting')">
       <b x-text="queue.length"></b><span>Waiting for your final approval</span><small>Already approved by their Campus Directors</small></button>
     <button type="button" class="tile plain" @click="openList('running')">
       <b x-text="totals.services"></b><span>Services in <span x-text="db.year"></span></span><small x-text="totals.completed + ' completed, in ' + totals.barangays + ' barangays'"></small></button>
     <button type="button" class="tile plain" @click="openList('completed')">
       <b x-text="totals.reached.toLocaleString('en-PH')"></b><span>People reached</span><small>From submitted accomplishment reports</small></button>
+    @unless($noBudget)
     <button type="button" class="tile plain" @click="openBudgets()">
       <b><span x-text="totals.usedPct"></span><span class="unit">%</span></b><span>Of extension budgets used</span><small x-text="peso(totals.used) + ' of ' + peso(totals.alloc)"></small></button>
+    @endif
   </div>
 
   <div class="grid-2">
@@ -108,7 +117,7 @@
     <div class="table-wrap">
       <table class="ctable">
         <thead><tr>
-          <th>Campus</th><th class="n">Services</th><th class="n">Ongoing</th><th class="n">Completed</th><th class="n">People reached</th><th>Budget used</th><th class="n">Reports overdue</th><th class="n">Waiting for you</th>
+          <th>Campus</th><th class="n">Services</th><th class="n">Ongoing</th><th class="n">Completed</th><th class="n">People reached</th>@unless($noBudget)<th>Budget used</th>@endunless<th class="n">Reports overdue</th><th class="n">Waiting for you</th>
         </tr></thead>
         <tbody>
           <template x-for="row in campusRows" :key="row.c">
@@ -118,7 +127,9 @@
               <td class="n" x-text="row.running"></td>
               <td class="n" x-text="row.completed"></td>
               <td class="n" :class="{zero: !row.reached}" x-text="row.reached.toLocaleString('en-PH')"></td>
+              @unless($noBudget)
               <td><div class="use"><i><b :style="'width:' + Math.min(row.pct, 100) + '%'"></b></i><span x-text="row.pct + '% of ' + peso(row.alloc)"></span></div></td>
+              @endunless
               <td class="n" :class="row.overdue ? 'hot-n' : 'zero'" x-text="row.overdue"></td>
               <td class="n" :class="{zero: !row.waiting}" x-text="row.waiting"></td>
             </tr>
@@ -130,7 +141,9 @@
           <td class="n" x-text="campusRows.reduce((t, r) => t + r.running, 0)"></td>
           <td class="n" x-text="totals.completed"></td>
           <td class="n" x-text="totals.reached.toLocaleString('en-PH')"></td>
+          @unless($noBudget)
           <td><div class="use"><i><b :style="'width:' + Math.min(totals.usedPct, 100) + '%'"></b></i><span x-text="totals.usedPct + '% of ' + peso(totals.alloc)"></span></div></td>
+          @endunless
           <td class="n" x-text="totals.overdue"></td>
           <td class="n" x-text="queue.length"></td>
         </tr></tfoot>
@@ -139,13 +152,14 @@
   </article>
 </section>
 
+@unless($noBudget)
 {{-- ========== Campus budgets ========== --}}
 <section x-show="view==='budgets'">
   <template x-if="budgetDraft">
   <div class="budgets">
     <div class="page-head">
       <div><h1>Campus budgets</h1>
-        <p>Set the university extension budget for <span x-text="db.year"></span>, then divide it among the campuses. What you don't give out stays as the university reserve for top-ups during the year. Requests over a campus's budget are flagged, not blocked.</p></div>
+        <p>Money you don’t give out stays in the university reserve. Requests over a campus budget are flagged, not blocked.</p></div>
     </div>
 
     {{-- the university total, how much of it is given to campuses, and the reserve --}}
@@ -167,7 +181,7 @@
         </ul>
         <div class="bud-hero-actions">
           <button type="button" class="btn gold" @click="askSplit()">
-            <svg viewBox="0 0 24 24"><path d="M12 3v6M12 9 6 15M12 9l6 6M6 15v6M18 15v6"/></svg>Split the total among campuses</button>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 3v6M12 9 6 15M12 9l6 6M6 15v6M18 15v6"/></svg>Split the total among campuses</button>
         </div>
       </div>
       <dl class="bud-hero-stats">
@@ -209,7 +223,7 @@
           <div class="bud-card-foot">
             <button type="button" class="link" @click="openList('all', x.c)">See requests</button>
             <button type="button" class="btn sm topup" @click="askTopUp(x.c)" :disabled="savedReserve <= 0" :title="savedReserve <= 0 ? 'The university reserve is empty' : 'Reserve: ' + peso(savedReserve)">
-              <svg viewBox="0 0 24 24"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>Top up from reserve</button>
+              <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 19V5M5.5 11.5 12 5l6.5 6.5"/></svg>Top up from reserve</button>
           </div>
         </article>
       </template>
@@ -217,7 +231,7 @@
 
     <div class="bud-bar" :class="{dirty: budgetSummary.changed}">
       <p x-show="!budgetDraft.error" x-text="budgetSummary.changed ? budgetSummary.changed + (budgetSummary.changed === 1 ? ' budget changed, not saved yet' : ' budgets changed, not saved yet') + (budgetSummary.reserve < 0 ? '. Campus budgets are over the total by ' + peso(-budgetSummary.reserve) + '.' : '') : 'All budgets are saved.'"></p>
-      <p class="err" x-show="budgetDraft.error" x-text="budgetDraft.error"></p>
+      <p class="err" role="alert" x-show="budgetDraft.error" x-text="budgetDraft.error"></p>
       <button type="button" class="btn ghost" @click="resetBudgets()" :disabled="!budgetSummary.changed">Discard changes</button>
       <button type="button" class="btn primary" @click="saveBudgets()" :disabled="!budgetSummary.changed">Save budgets</button>
     </div>
@@ -235,14 +249,15 @@
   </div>
   </template>
 </section>
+@endunless
 
-@include('prototype.partials.requests', ['intro' => 'Extension requests from all six campuses. Each is approved by its own Campus Director before it reaches you.'])
+@include('prototype.partials.requests')
 
 @include('prototype.partials.map')
 
 @include('prototype.partials.archive')
 
-@include('prototype.partials.notifications', ['notifIntro' => 'Requests approved by the Campus Directors, overdue reports and overlaps between campuses.'])
+@include('prototype.partials.notifications')
 </main>
 
 @include('prototype.partials.drawer')

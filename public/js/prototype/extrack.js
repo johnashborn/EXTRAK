@@ -32,6 +32,15 @@
   // the approvers are warned when these are missing (spec 3.2, [Open]: confirm the list)
   const REQUIRED_DOCS = ['letter', 'proposal'];
   const SERVER = window.EXTRACK_SERVER || null;
+  // the no-budget version: campuses have no allocation, requests only carry a proposed budget
+  const NO_BUDGET = window.EXTRACK_NO_BUDGET === true;
+  const DECLINE_REMARK = NO_BUDGET ? 'The request cannot be supported this year.' : 'The campus extension budget cannot cover this request this year.';
+  // map marker outline: a teardrop pin, 30 by 42, tip at the bottom centre
+  const PIN_PATH = 'M15 1.5C7.5 1.5 1.5 7.4 1.5 14.7c0 9.9 11.6 24.3 12.6 25.6a1.1 1.1 0 0 0 1.8 0c1-1.3 12.6-15.7 12.6-25.6C28.5 7.4 22.5 1.5 15 1.5Z';
+  // who the dashboard opens as: the person picked on the sign-in form when it belongs to this dashboard
+  const startActor = (allowed, fallback) => allowed.includes(window.EXTRACK_ACTOR) ? window.EXTRACK_ACTOR : fallback;
+  // what Tab can reach inside a dialog
+  const FOCUSABLE = 'a[href],button:not([disabled]),input:not([disabled]),select:not([disabled]),textarea:not([disabled]),iframe,[tabindex]:not([tabindex="-1"])';
   const csrf = () => (document.querySelector('meta[name="csrf-token"]') || {}).content || '';
   function guessKind(name) {
     const n = name.toLowerCase();
@@ -563,6 +572,8 @@
     const viewer = { token: 0 };
     // saving to and refreshing from the server; kept out of Alpine's reactive state
     const sync = { timer: null, saving: false, remote: false, version: 0 };
+    // where focus was before a dialog opened, so it can go back there
+    const focusBack = {};
     return {
       PEOPLE, CATEGORIES, SECTORS, PLACES, STATUS, TODAY, CAMPUSES,
       db: null,
@@ -577,7 +588,9 @@
       docView: null,
       theme: 'light',
       mapFilter: { campus: '', category: '', ongoing: true, completed: true },
+      archFilter: { q: '', year: '', campus: '', category: '', sort: 'newest' },
       mapSel: null,
+      sideCollapsed: false,
 
       init() {
         let saved = SERVER ? SERVER.state : null;
@@ -595,15 +608,21 @@
         this.db = usable ? saved : seed();
         if (!usable || renamed || fixed.changed) this.persist(); // first visit, older sample data, or names updated: save it
         try { this.theme = localStorage.getItem('extrack.theme.v2') === 'dark' ? 'dark' : 'light'; } catch (e) { }
+        try { this.sideCollapsed = localStorage.getItem('extrack.side.v1') === 'collapsed'; } catch (e) { }
         this.applyTheme();
         this.$watch('db', () => { if (sync.remote) sync.remote = false; else this.persist(); this.drawMarkers(); }, { deep: true });
         this.$watch('mapFilter', () => this.drawMarkers(), { deep: true });
         this.$watch('mapSel', () => this.drawMarkers(), { deep: true });
+        this.$watch('selectedId', (id, old) => this.dialogFocus(!!id, !!old, '.drawer'));
+        this.$watch('modal', (m, old) => this.dialogFocus(!!m, !!old, '.modal'));
+        // closing the tab or reloading would lose an unsaved form or unsaved budgets
+        window.addEventListener('beforeunload', e => { if (this.hasUnsaved()) { e.preventDefault(); e.returnValue = ''; } });
         // pick up what the other dashboards saved, in this browser or another one
         if (SERVER) setInterval(() => this.pull(), 4000);
         window.addEventListener('keydown', e => {
           if (this.docView && !this.alert && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return this.stepDoc(e.key === 'ArrowRight' ? 1 : -1);
           if (this.lightbox && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return this.stepPhoto(e.key === 'ArrowRight' ? 1 : -1);
+          if (e.key === 'Tab') return this.trapTab(e);
           if (e.key !== 'Escape') return;
           if (this.alert) this.alert = null; else if (this.docView) this.closeDocs(); else if (this.lightbox) this.lightbox = null; else if (this.modal) this.modal = null; else if (this.selectedId) this.selectedId = null; else this.notifOpen = false;
         });
@@ -648,12 +667,60 @@
         } catch (e) { /* server unreachable; try again on the next pull */ }
       },
       resetDemo() {
-        this.db = seed(); this.selectedId = null; this.modal = null; this.view = 'dashboard';
-        this.notify('Demo data reset');
+        this.askConfirm({
+          title: 'Reset the demo data?',
+          message: 'Every request, report, notification and budget change goes back to the sample data, on all three dashboards. This cannot be undone.',
+          confirm: 'Reset demo data',
+          run: () => { this.db = seed(); this.selectedId = null; this.view = 'dashboard'; this.notify('Demo data reset'); },
+        });
+      },
+      // a dialog that asks before something cannot be undone; run is called only on yes
+      askConfirm({ title, message, confirm, run }) { this.modal = { type: 'confirm', title, message, confirm, run }; },
+      confirmYes() { const run = this.modal.run; this.modal = null; run(); },
+      // focus goes into a dialog when it opens and back to where it was when it closes
+      dialogFocus(open, wasOpen, selector) {
+        if (open && !wasOpen) {
+          focusBack[selector] = document.activeElement;
+          this.$nextTick(() => {
+            const box = document.querySelector(selector);
+            const target = box && (box.querySelector('[data-autofocus]') || box.querySelector(FOCUSABLE));
+            if (target) target.focus();
+          });
+        } else if (!open && wasOpen) {
+          const back = focusBack[selector];
+          focusBack[selector] = null;
+          if (back && document.contains(back)) this.$nextTick(() => back.focus());
+        }
+      },
+      // Tab and Shift+Tab stay inside the topmost open dialog
+      trapTab(e) {
+        const shown = el => el && el.getClientRects().length;
+        const box = ['.alert-card', '.docview', '.lightbox figure', '.modal', '.drawer'].map(s => document.querySelector(s)).find(shown);
+        if (!box) return;
+        const items = [...box.querySelectorAll(FOCUSABLE)].filter(shown);
+        if (!items.length) return;
+        const first = items[0], last = items[items.length - 1];
+        if (!box.contains(document.activeElement)) { e.preventDefault(); first.focus(); }
+        else if (e.shiftKey && document.activeElement === first) { e.preventDefault(); last.focus(); }
+        else if (!e.shiftKey && document.activeElement === last) { e.preventDefault(); first.focus(); }
+      },
+      formSaved: null,
+      hasUnsaved() {
+        const form = this.view === 'new' && this.formSaved !== null && JSON.stringify(this.form) !== this.formSaved;
+        return form || !!(this.budgetDraft && this.budgetSummary && this.budgetSummary.changed);
       },
       applyTheme() {
         const root = document.documentElement;
         if (this.theme === 'dark') root.setAttribute('data-theme', 'dark'); else root.removeAttribute('data-theme');
+        const meta = document.querySelector('meta[name="theme-color"]');
+        if (meta) meta.content = getComputedStyle(root).getPropertyValue('--bg').trim() || meta.content;
+      },
+      // the sidebar shrinks to its icons and the current view takes the width; remembered in this browser
+      toggleSide() {
+        this.sideCollapsed = !this.sideCollapsed;
+        try { localStorage.setItem('extrack.side.v1', this.sideCollapsed ? 'collapsed' : 'open'); } catch (e) { }
+        // the map measures itself once the width has settled
+        setTimeout(() => { if (mapState.map) mapState.map.invalidateSize(); }, 260);
       },
       cycleTheme() {
         this.theme = this.theme === 'dark' ? 'light' : 'dark';
@@ -687,6 +754,26 @@
           .sort((a, b) => a.end.localeCompare(b.end));
       },
       get archive() { return this.requests.filter(r => ['completed', 'archived'].includes(r.status)).sort((a, b) => b.end.localeCompare(a.end)); },
+      // the years that have finished services, newest first, for the archive's year filter
+      get archiveYears() { return [...new Set(this.archive.map(r => r.end.slice(0, 4)))].sort().reverse(); },
+      get archiveFiltered() {
+        const f = this.archFilter, q = f.q.trim().toLowerCase();
+        const reached = r => r.report ? r.report.actualBeneficiaries : 0;
+        const sorts = {
+          newest: (a, b) => b.end.localeCompare(a.end),
+          oldest: (a, b) => a.end.localeCompare(b.end),
+          reached: (a, b) => reached(b) - reached(a),
+          title: (a, b) => a.title.localeCompare(b.title),
+        };
+        return this.archive.filter(r =>
+          (!f.year || r.end.startsWith(f.year))
+          && (!f.campus || campusOf(r) === f.campus)
+          && (!f.category || r.category === f.category)
+          && (!q || [r.title, r.code, r.municipality, ...r.barangays, r.report ? r.report.narrative : ''].join(' ').toLowerCase().includes(q))
+        ).sort(sorts[f.sort] || sorts.newest);
+      },
+      get archFiltering() { const f = this.archFilter; return !!(f.q.trim() || f.year || f.campus || f.category); },
+      clearArchFilter() { Object.assign(this.archFilter, { q: '', year: '', campus: '', category: '' }); },
       lastEvent(r) { return r.events[r.events.length - 1]; },
       lastTo(r, to) { return [...r.events].reverse().find(e => e.to === to); },
 
@@ -717,7 +804,7 @@
       // ---------- budget ----------
       get budget() { return this.budgetOf(this.campus); },
       // the latest change the President made to this campus's budget this year, if any
-      get budgetChange() { return (this.db.budgetLog || []).find(e => e.campus === this.campus && e.year === this.db.year); },
+      get budgetChange() { return NO_BUDGET ? null : (this.db.budgetLog || []).find(e => e.campus === this.campus && e.year === this.db.year); },
       budgetOf(campus) {
         const inYear = r => r.start.startsWith(String(this.db.year));
         const sum = (arr, f) => arr.reduce((t, r) => t + f(r), 0);
@@ -734,6 +821,7 @@
         // budget is charged to the year of the start date
         const year = (req.start || TODAY).slice(0, 4);
         const sameYear = String(this.db.year) === year;
+        if (NO_BUDGET) return { year, sameYear, over: false, remaining: null };
         if (!sameYear) return { year, sameYear, over: false, remaining: null };
         const b = this.budgetOf(campusOf(req));
         const counted = ['approved', 'ongoing', 'completed', 'archived'].includes(req.status);
@@ -837,7 +925,11 @@
           const color = campuses.length === 1 ? this.campusColor(campuses[0]) : '#47445F';
           const n = p.services.length;
           const on = this.mapSel && this.mapSel.key === p.key;
-          const icon = L.divIcon({ className: on ? 'pin on' : 'pin', html: '<span style="background:' + color + '">' + n + '</span>', iconSize: [30, 30], iconAnchor: [15, 15] });
+          // a location pin whose tip sits on the barangay, with the number of services in its head
+          const icon = L.divIcon({
+            className: on ? 'pin on' : 'pin', iconSize: [30, 42], iconAnchor: [15, 41],
+            html: '<span><svg viewBox="0 0 30 42" aria-hidden="true"><path d="' + PIN_PATH + '" fill="' + color + '"/></svg><b>' + n + '</b></span>',
+          });
           L.marker(p.latlng, { icon, zIndexOffset: on ? 1000 : 0, title: p.name + ': ' + n + (n === 1 ? ' service' : ' services'), keyboard: true })
             .on('click', () => this.selectPlace(p.key)).addTo(mapState.layer);
         });
@@ -921,7 +1013,8 @@
       },
 
       // ---------- notifications (each role sees its own) ----------
-      get myNotifications() { return this.db.notifications.filter(n => n.to === this.audience); },
+      // budget changes from the President are left out when there is no allocation
+      get myNotifications() { return this.db.notifications.filter(n => n.to === this.audience && !(NO_BUDGET && n.text.includes('extension budget'))); },
       get unreadCount() { return this.myNotifications.filter(n => !n.read).length; },
       readNotification(n) { n.read = true; if (n.ref && this.byId(n.ref)) this.open(n.ref); },
       markAllRead() { this.myNotifications.forEach(n => n.read = true); },
@@ -931,7 +1024,7 @@
         const title = r.title;
         if (action === 'approve') { this.move(r, 'approved', '', 'pres'); this.pushNotification('The University President approved ' + title + '.', r.id, 'approved', ['ed', 'cd']); }
         if (action === 'return') { this.move(r, 'returned', 'Clarify how this differs from the similar activity flagged by EXTRACK.', 'pres'); this.pushNotification('The University President returned ' + title + '.', r.id, 'returned', ['ed', 'cd']); }
-        if (action === 'decline') { this.move(r, 'declined', 'The campus extension budget cannot cover this request this year.', 'pres'); this.pushNotification('The University President declined ' + title + '.', r.id, 'returned', ['ed', 'cd']); }
+        if (action === 'decline') { this.move(r, 'declined', DECLINE_REMARK, 'pres'); this.pushNotification('The University President declined ' + title + '.', r.id, 'returned', ['ed', 'cd']); }
         this.notify('Simulated: the University President ' + { approve: 'approved', return: 'returned', decline: 'declined' }[action] + ' it.', 'info');
       },
     };
@@ -943,7 +1036,7 @@
       role: 'ed',
       audience: 'ed',
       campus: 'Balilihan',
-      actor: 'ed',
+      actor: startActor(['ed', 'asst'], 'ed'),
       form: emptyForm(),
       formErrors: {},
       docBusy: false,
@@ -1013,9 +1106,12 @@
       },
       async addPhotos(e) {
         const m = this.modal;
-        const files = [...(e.target.files || [])].filter(f => f.type.startsWith('image/'));
+        const picked = [...(e.target.files || [])];
         e.target.value = '';
-        m.busy = true; m.error = '';
+        // iPhone HEIC photos and other formats browsers cannot show are refused with a reason, not skipped silently
+        const ok = f => /^image\/(jpeg|png|webp|gif)$/.test(f.type);
+        const files = picked.filter(ok), refused = picked.filter(f => !ok(f));
+        m.busy = true; m.error = refused.length ? refused.map(f => f.name).join(', ') + ': only JPG, PNG, WebP or GIF photos can be added. Save HEIC photos as JPG first.' : '';
         for (const f of files) {
           try {
             const up = await storeFile(f, 1000);
@@ -1048,8 +1144,15 @@
           notes: this.submitNotes(r), next: 'You will get a notification when the Campus Director approves or returns it.', ref: r.id });
       },
       deleteDraft(r) {
-        this.db.requests = this.db.requests.filter(x => x.id !== r.id);
-        this.selectedId = null; this.notify('Draft deleted.', 'warn');
+        this.askConfirm({
+          title: 'Delete this draft?',
+          message: '\u201C' + r.title + '\u201D and its attached documents will be removed. This cannot be undone.',
+          confirm: 'Delete draft',
+          run: () => {
+            this.db.requests = this.db.requests.filter(x => x.id !== r.id);
+            this.selectedId = null; this.notify('Draft deleted.', 'warn');
+          },
+        });
       },
 
       // prototype only: play the Campus Director's part
@@ -1062,12 +1165,12 @@
           this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It needs your final approval.', r.id, 'request', 'pres');
         }
         if (action === 'return') { this.move(r, 'returned', 'Please add the expected outcomes per barangay.', 'cd'); this.pushNotification('The Campus Director returned ' + r.title + '.', r.id, 'returned', 'ed'); }
-        if (action === 'decline') { this.move(r, 'declined', 'The campus extension budget cannot cover this request this year.', 'cd'); this.pushNotification('The Campus Director declined ' + r.title + '.', r.id, 'returned', 'ed'); }
+        if (action === 'decline') { this.move(r, 'declined', DECLINE_REMARK, 'cd'); this.pushNotification('The Campus Director declined ' + r.title + '.', r.id, 'returned', 'ed'); }
         this.notify('Simulated: the Campus Director ' + { approve: 'approved', return: 'returned', decline: 'declined' }[action] + ' it.', 'info');
       },
 
       // ---------- new / edit request ----------
-      newRequest() { this.form = emptyForm(); this.formErrors = {}; this.docError = ''; this.selectedId = null; this.view = 'new'; },
+      newRequest() { this.form = emptyForm(); this.formSaved = JSON.stringify(this.form); this.formErrors = {}; this.docError = ''; this.selectedId = null; this.view = 'new'; },
       async addDocs(e) {
         const files = [...(e.target.files || [])];
         e.target.value = '';
@@ -1083,7 +1186,18 @@
       removeDoc(i) { this.form.attachments.splice(i, 1); },
       editRequest(r) {
         this.form = { id: r.id, title: r.title, description: r.description, category: r.category, municipality: r.municipality, barangays: [...r.barangays], start: r.start, end: r.end, budget: r.budget, beneficiaries: r.beneficiaries, sectors: [...r.sectors], partners: r.partners, attachments: this.docsOf(r).map(d => ({ ...d })) };
+        this.formSaved = JSON.stringify(this.form);
         this.formErrors = {}; this.docError = ''; this.selectedId = null; this.view = 'new';
+      },
+      // after a failed submit, focus the first field with an error
+      focusFirstError() {
+        const ids = { title: 'f-title', description: 'f-desc', category: 'f-cat', barangays: 'f-brgy', dates: 'f-start', budget: 'f-budget', beneficiaries: 'f-ben' };
+        const key = Object.keys(ids).find(k => this.formErrors[k]);
+        this.$nextTick(() => {
+          const el = key && document.getElementById(ids[key]);
+          const target = el && el.tagName === 'FIELDSET' ? el.querySelector(FOCUSABLE) : el;
+          if (target) target.focus();
+        });
       },
       toggle(list, v) { const i = list.indexOf(v); i < 0 ? list.push(v) : list.splice(i, 1); },
       get suggestedCategory() { return suggestCategory(this.form.title + ' ' + this.form.description); },
@@ -1119,9 +1233,9 @@
       },
       saveForm(submit) {
         if (submit && !this.isDirector) return;
-        if (!this.form.title.trim()) { this.formErrors = { title: 'Add a title before saving.' }; return; }
+        if (!this.form.title.trim()) { this.formErrors = { title: 'Add a title before saving.' }; this.focusFirstError(); return; }
         if (this.docBusy) { this.docError = 'Wait for the files to finish uploading.'; return; }
-        if (submit && !this.validate()) { this.notify('Some fields need attention.', 'bad'); return; }
+        if (submit && !this.validate()) { this.notify('Some fields need attention.', 'bad'); this.focusFirstError(); return; }
         const f = this.form;
         const fields = { title: f.title.trim(), description: f.description.trim(), category: f.category || this.suggestedCategory || 'Others', municipality: f.municipality, barangays: [...f.barangays], start: f.start, end: f.end || f.start, budget: Number(f.budget || 0), beneficiaries: Number(f.beneficiaries || 0), sectors: [...f.sectors], partners: f.partners, attachments: f.attachments.map(d => ({ ...d })) };
         let r = f.id ? this.byId(f.id) : null;
@@ -1140,7 +1254,7 @@
             message: '"' + r.title + '" was sent to ' + this.person('cd').name + ' (Campus Director) for approval.',
             notes: this.submitNotes(r), next: 'You will get a notification when the Campus Director approves or returns it.', ref: r.id });
         } else this.notify('Saved as a draft.');
-        this.form = emptyForm();
+        this.form = emptyForm(); this.formSaved = null;
         this.view = 'requests'; this.filter = { tab: submit ? 'waiting' : 'drafts', q: '', status: '', category: '' };
         if (!submit) this.open(r.id);
       },
@@ -1153,7 +1267,7 @@
       role: 'cd',
       audience: 'cd',
       campus: 'Balilihan',
-      actor: 'cd',
+      actor: startActor(['cd', 'cdasst'], 'cd'),
       tabs: [['all', 'All'], ['waiting', 'Waiting for you'], ['president', 'With the President'], ['returned', 'Returned'], ['overlaps', 'Overlaps to resolve'], ['running', 'Approved and ongoing']],
       get isDirector() { return this.actor === 'cd'; },
       statusText(r) { return r.status === 'submitted' ? 'Waiting for you' : STATUS[r.status].label; },
@@ -1241,6 +1355,23 @@
       audience: 'pres',
       actor: 'pres',
       campus: null,
+      // only the President can remove a finished service; it is gone for every campus and from the database
+      deleteArchived(r) {
+        if (!['completed', 'archived'].includes(r.status)) return;
+        const photos = this.photosOf(r).length;
+        this.askConfirm({
+          title: 'Delete this record?',
+          message: '“' + r.title + '” (' + r.code + ', ' + this.campusName(r) + ') will be removed from the archive with its accomplishment report'
+            + (photos ? ', ' + photos + (photos === 1 ? ' photo' : ' photos') : '') + ' and documents. The campus will no longer see it. This cannot be undone.',
+          confirm: 'Delete record',
+          run: () => {
+            this.db.requests = this.db.requests.filter(x => x.id !== r.id);
+            this.db.notifications = this.db.notifications.filter(n => n.ref !== r.id);
+            if (this.selectedId === r.id) this.selectedId = null;
+            this.notify('“' + r.title + '” was deleted from the archive.', 'warn');
+          },
+        });
+      },
       tabs: [['waiting', 'Waiting for you'], ['all', 'All'], ['running', 'Approved and ongoing'], ['completed', 'Completed'], ['stopped', 'Returned or declined']],
       get isDirector() { return true; },
       statusText(r) { return { submitted: 'With the Campus Director of ' + this.campusName(r), for_president: 'Waiting for you' }[r.status] || STATUS[r.status].label; },

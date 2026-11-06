@@ -6,7 +6,7 @@
       <header class="d-head">
         <div><small x-text="r.code + ' · ' + campusName(r)"></small><h2 id="d-title" x-text="r.title"></h2>
           <span class="pill" :class="'t-'+statusTone(r)" x-text="statusText(r)"></span></div>
-        <button type="button" class="icon-btn" @click="selectedId=null" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
+        <button type="button" class="icon-btn" @click="selectedId=null" aria-label="Close"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg></button>
       </header>
 
       <ol class="stepper"><template x-for="s in steps(r)" :key="s.label"><li :class="s.state"><i></i><span x-text="s.label"></span></li></template></ol>
@@ -15,7 +15,7 @@
       <div class="d-actions">
         @if ($role === 'ed')
         <p class="muted" x-show="r.status==='submitted'">Waiting for the Campus Director to approve, return or decline it.</p>
-        <p class="muted" x-show="r.status==='for_president'">Approved by the Campus Director. Waiting for the University President's final approval.</p>
+        <p class="muted" x-show="r.status==='for_president'">Approved by the Campus Director. Waiting for the University President’s final approval.</p>
         <template x-if="r.status==='draft'"><div class="act-row">
           <button type="button" class="btn primary" @click="submitDraft(r)" :disabled="!isDirector">Submit to Campus Director</button>
           <button type="button" class="btn ghost" @click="editRequest(r)">Edit</button>
@@ -32,7 +32,7 @@
           <button type="button" class="btn ghost" @click="askDecision(r,'return')" :disabled="!isDirector">Return</button>
           <button type="button" class="btn ghost danger" @click="askDecision(r,'decline')" :disabled="!isDirector">Decline</button></div></template>
         <p class="muted" x-show="r.status==='submitted' && !isDirector">Only the Campus Director can approve, return or decline. You can add remarks.</p>
-        <p class="muted" x-show="r.status==='for_president'">You approved this for the campus. Waiting for the University President's final approval.</p>
+        <p class="muted" x-show="r.status==='for_president'">You approved this for the campus. Waiting for the University President’s final approval.</p>
         <p class="muted" x-show="r.status==='returned'">Returned to the Extension Director to revise and resubmit.</p>
         <p class="muted" x-show="r.status==='approved'">Approved. The extension office will mark it as started.</p>
         <p class="muted" x-show="r.status==='ongoing'" x-text="r.end < TODAY ? 'The service has ended. Waiting for the accomplishment report from the extension office.' : 'Being carried out by the extension office.'"></p>
@@ -46,6 +46,8 @@
         <p class="muted" x-show="r.status==='returned'">Returned to the campus extension office to revise and resubmit.</p>
         <p class="muted" x-show="r.status==='approved'">You gave final approval. The extension office will mark it as started.</p>
         <p class="muted" x-show="r.status==='ongoing'" x-text="r.end < TODAY ? 'The service has ended, but the campus has not submitted its accomplishment report.' : 'Being carried out by the campus extension office.'"></p>
+        <template x-if="['completed','archived'].includes(r.status)"><div class="act-row">
+          <button type="button" class="btn ghost danger" @click="deleteArchived(r)">Delete from archive</button></div></template>
         @endif
       </div>
 
@@ -75,7 +77,7 @@
 
       <div class="callout warn" x-show="['submitted','for_president'].includes(r.status) && budgetFor(r).over">
         <b x-text="'Over the remaining ' + budgetFor(r).year + ' budget by ' + peso(budgetFor(r).by)"></b>
-        <p>The request can still be approved. Balilihan Campus has <span x-text="peso(budgetFor(r).remaining)"></span> left that isn't committed or spent.</p>
+        <p>The request can still be approved. Balilihan Campus has <span x-text="peso(budgetFor(r).remaining)"></span> left that isn’t committed or spent.</p>
       </div>
 
       <h3 class="d-sec">Details</h3>
@@ -117,7 +119,7 @@
         <p class="muted" x-show="!photosOf(r).length">No photos attached to this report.</p>
         <ul class="gallery" x-show="photosOf(r).length">
           <template x-for="(p, i) in photosOf(r)" :key="i">
-            <li><button type="button" @click="openPhoto(photosOf(r), i)" :aria-label="'Open photo: ' + p.name"><img :src="p.src" :alt="p.name"></button><small x-text="p.name"></small></li>
+            <li><button type="button" @click="openPhoto(photosOf(r), i)" :aria-label="'Open photo: ' + p.name"><img :src="p.src" :alt="p.name" width="160" height="120" loading="lazy"></button><small x-text="p.name"></small></li>
           </template>
         </ul>
       </div></template>
@@ -136,7 +138,7 @@
         <li x-show="!r.remarks.length" class="muted">No remarks yet.</li>
       </ul>
       <form class="remark-form" @submit.prevent="addRemark(r, $refs.remark)">
-        <input x-ref="remark" placeholder="Write a remark" aria-label="Write a remark"><button type="submit" class="btn sm ghost">Post</button>
+        <input x-ref="remark" name="remark" autocomplete="off" placeholder="Write a remark…" aria-label="Write a remark"><button type="submit" class="btn sm ghost">Post</button>
       </form>
 
       @if ($role === 'ed')

@@ -4,7 +4,8 @@ namespace Tests\Feature;
 
 use App\Actions\Prototype\StorePrototypeFile;
 use App\Models\PrototypeFile;
-use App\Models\PrototypeState;
+use App\Models\ExtensionRequest;
+use App\Models\Setting;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
@@ -17,7 +18,19 @@ class PrototypeStorageTest extends TestCase
 
     private function sampleState(string $title = 'Tilapia training'): array
     {
-        return ['schema' => 7, 'requests' => [['id' => 'r1', 'title' => $title]], 'notifications' => []];
+        return [
+            'schema' => 7,
+            'year' => 2026,
+            'nextNo' => 2,
+            'requests' => [[
+                'id' => 'r1', 'code' => 'BAL-2026-001', 'title' => $title, 'status' => 'submitted',
+                'requestedBy' => 'ed', 'category' => 'Agriculture & Fisheries', 'municipality' => 'Balilihan',
+                'barangays' => ['Maslog'], 'sectors' => ['Farmers'], 'start' => '2026-12-01', 'end' => '2026-12-02',
+                'budget' => 15000, 'beneficiaries' => 30, 'attachments' => [], 'remarks' => [], 'report' => null, 'overlap' => null,
+                'events' => [['at' => '2026-10-28T09:00', 'by' => 'ed', 'from' => 'draft', 'to' => 'submitted']],
+            ]],
+            'notifications' => [],
+        ];
     }
 
     public function test_guests_cannot_read_or_save_data_or_files(): void
@@ -46,7 +59,9 @@ class PrototypeStorageTest extends TestCase
             // everything besides the requests is kept too
             ->assertJsonPath('data.schema', 7)
             ->assertJsonPath('data.notifications', []);
-        $this->assertSame($user->id, PrototypeState::current()->updated_by);
+        // the request is stored as a row of its own, not as one saved blob
+        $this->assertSame('Mangrove planting', ExtensionRequest::where('ref', 'r1')->value('title'));
+        $this->assertEquals($user->id, Setting::valueOf('updated_by'));
     }
 
     public function test_state_without_requests_is_rejected(): void
