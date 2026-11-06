@@ -141,7 +141,7 @@
         <input x-ref="remark" name="remark" autocomplete="off" placeholder="Write a remark…" aria-label="Write a remark"><button type="submit" class="btn sm ghost">Post</button>
       </form>
 
-      @if ($role === 'ed')
+      @if (($demoControls ?? false) && $role === 'ed')
       <div class="sim" x-show="['submitted','for_president'].includes(r.status)">
         <p><b>Prototype only.</b> Play the next approver's part:</p>
         <div class="act-row">
@@ -155,7 +155,7 @@
             <button type="button" class="btn sm ghost" @click="simulate(r,'pres','decline')">President declines</button></div></template>
         </div>
       </div>
-      @elseif ($role === 'cd')
+      @elseif (($demoControls ?? false) && $role === 'cd')
       <div class="sim" x-show="['for_president','returned'].includes(r.status)">
         <p><b>Prototype only.</b> Play the next person's part:</p>
         <div class="act-row">

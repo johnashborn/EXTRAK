@@ -13,7 +13,9 @@ Route::middleware('auth')->prefix('prototype')->name('prototype.')->group(functi
     // For now the dashboards run without campus budget allocation: requests carry a proposed budget only.
     // The budget version (campus budgets, remaining amounts, over-budget warnings) is still in the views
     // and extrack.js; set 'noBudget' => false here to bring it back.
-    $budgetAllocation = ['noBudget' => true];
+    // Demo controls (role switcher, "simulate" buttons, reset demo data) are hidden for the presentation;
+    // set 'demoControls' => true to bring them back for testing.
+    $budgetAllocation = ['noBudget' => true, 'demoControls' => false];
     Route::view('/extension-director', 'prototype.extension-director', $budgetAllocation)->name('extension-director');
     Route::view('/campus-director', 'prototype.campus-director', $budgetAllocation)->name('campus-director');
     Route::view('/president', 'prototype.president', $budgetAllocation)->name('president');

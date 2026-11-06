@@ -73,7 +73,9 @@ mark{background:var(--gold-soft);color:var(--gold-ink);padding:0 var(--space-1);
 .proto select{border-radius:var(--r-sm);padding:var(--space-2) var(--space-2);font-size:var(--text-sm)}
 .proto-note{color:var(--ink-3);font-size:var(--text-xs)}
 .proto .link{font-size:var(--text-xs);margin-top:2px}
-.me{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-2) 0;margin-top:var(--space-4);border-top:1px solid var(--line)}
+.me{display:flex;align-items:center;gap:var(--space-2);padding:var(--space-4) var(--space-2) 0;margin-top:auto;border-top:1px solid var(--line)}
+/* with the demo box shown, the box takes the free space and the profile follows right under it */
+.proto ~ .me{margin-top:var(--space-4)}
 .me b{display:block;color:var(--ink);font-size:var(--text-sm)}
 .me small{display:block;color:var(--ink-3);font-size:var(--text-xs)}
 .signout button{display:flex;align-items:center;gap:var(--space-2);width:100%;margin-top:var(--space-2);padding:var(--space-2) var(--space-3);border-radius:var(--r-sm);color:var(--ink-3);font-size:var(--text-sm);font-weight:500}

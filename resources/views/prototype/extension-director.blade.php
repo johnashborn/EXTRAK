@@ -30,6 +30,7 @@
       <svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3.5" y="4" width="17" height="4.5" rx="1"/><path d="M5 8.5V19a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1V8.5M10 12.5h4"/></svg>Archive</button>
   </nav>
 
+  @if($demoControls ?? false)
   <div class="proto">
     <p class="proto-title">Prototype controls</p>
     <label for="actor">Signed in as</label>
@@ -42,6 +43,7 @@
     <a class="link" href="{{ $dashboard('president') }}">Open the University President dashboard</a>
     <button type="button" class="link" @click="resetDemo()">Reset demo data</button>
   </div>
+  @endif
 
   @include('prototype.partials.me')
 </aside>
