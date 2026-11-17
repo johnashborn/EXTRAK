@@ -4,7 +4,7 @@ namespace App\Support;
 
 /**
  * Prototype only: the role picked on the sign-in form, and the dashboard it opens.
- * The keys match the people in extrack.js (ed, asst, cd, cdasst, pres).
+ * The keys match the people in extrack.js (ed, asst, cd, pres).
  */
 final class PrototypeRole
 {
@@ -16,7 +16,6 @@ final class PrototypeRole
         'ed' => 'Extension Director',
         'asst' => "Extension Director's Assistant",
         'cd' => 'Campus Director',
-        'cdasst' => "Campus Director's Assistant",
         'pres' => 'University President',
     ];
 
@@ -25,16 +24,14 @@ final class PrototypeRole
         'ed' => 'Extension Director',
         'asst' => 'Extension Assistant',
         'cd' => 'Campus Director',
-        'cdasst' => 'Campus Assistant',
         'pres' => 'President',
     ];
 
-    /** The dashboard route for each role; assistants use their director's dashboard. */
+    /** The dashboard route for each role; the assistant uses the Extension Director's dashboard. */
     private const ROUTES = [
         'ed' => 'prototype.extension-director',
         'asst' => 'prototype.extension-director',
         'cd' => 'prototype.campus-director',
-        'cdasst' => 'prototype.campus-director',
         'pres' => 'prototype.president',
     ];
 

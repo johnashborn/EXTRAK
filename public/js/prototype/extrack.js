@@ -129,6 +129,7 @@
     ed: { name: 'Sir Marc Olaguir', title: 'Extension Director', initials: 'MO' },
     asst: { name: 'Miss Jaquelyn L. Omapas', title: "Extension Director's Assistant", initials: 'JO' },
     cd: { name: 'Mrs. Marietta Macalolot', title: 'Campus Director', initials: 'MM' },
+    // the Campus Director's Assistant role was removed; kept so remarks saved earlier still show a name
     cdasst: { name: 'Lorna Abella', title: "Campus Director's Assistant", initials: 'LA' },
     pres: { name: 'Mr. Anthony M. Penaso', title: 'University President', initials: 'AP' },
   };
@@ -615,6 +616,8 @@
         this.$watch('mapSel', () => this.drawMarkers(), { deep: true });
         this.$watch('selectedId', (id, old) => this.dialogFocus(!!id, !!old, '.drawer'));
         this.$watch('modal', (m, old) => this.dialogFocus(!!m, !!old, '.modal'));
+        // the class lets the print styles show only the report
+        this.$watch('reportOpen', (open, was) => { document.documentElement.classList.toggle('report-open', open); this.dialogFocus(open, was, '.report-view'); });
         // closing the tab or reloading would lose an unsaved form or unsaved budgets
         window.addEventListener('beforeunload', e => { if (this.hasUnsaved()) { e.preventDefault(); e.returnValue = ''; } });
         // pick up what the other dashboards saved, in this browser or another one
@@ -624,7 +627,7 @@
           if (this.lightbox && (e.key === 'ArrowRight' || e.key === 'ArrowLeft')) return this.stepPhoto(e.key === 'ArrowRight' ? 1 : -1);
           if (e.key === 'Tab') return this.trapTab(e);
           if (e.key !== 'Escape') return;
-          if (this.alert) this.alert = null; else if (this.docView) this.closeDocs(); else if (this.lightbox) this.lightbox = null; else if (this.modal) this.modal = null; else if (this.selectedId) this.selectedId = null; else this.notifOpen = false;
+          if (this.alert) this.alert = null; else if (this.reportOpen) this.reportOpen = false; else if (this.docView) this.closeDocs(); else if (this.lightbox) this.lightbox = null; else if (this.modal) this.modal = null; else if (this.selectedId) this.selectedId = null; else this.notifOpen = false;
         });
       },
       persist() {
@@ -695,7 +698,7 @@
       // Tab and Shift+Tab stay inside the topmost open dialog
       trapTab(e) {
         const shown = el => el && el.getClientRects().length;
-        const box = ['.alert-card', '.docview', '.lightbox figure', '.modal', '.drawer'].map(s => document.querySelector(s)).find(shown);
+        const box = ['.alert-card', '.report-view', '.docview', '.lightbox figure', '.modal', '.drawer'].map(s => document.querySelector(s)).find(shown);
         if (!box) return;
         const items = [...box.querySelectorAll(FOCUSABLE)].filter(shown);
         if (!items.length) return;
@@ -774,6 +777,139 @@
       },
       get archFiltering() { const f = this.archFilter; return !!(f.q.trim() || f.year || f.campus || f.category); },
       clearArchFilter() { Object.assign(this.archFilter, { q: '', year: '', campus: '', category: '' }); },
+      // ---------- consolidated report: whatever the archive filters show, added up ----------
+      consolidated: null,
+      activity: null,
+      reportOpen: false,
+      openConsolidated() {
+        const f = this.archFilter, list = this.archiveFiltered;
+        if (!list.length) return;
+        const rows = list.map(r => ({
+          id: r.id, code: r.code, title: r.title, campus: campusOf(r), category: r.category,
+          place: r.barangays.join(', ') + ', ' + r.municipality,
+          start: (r.report && r.report.actualStart) || r.start,
+          end: (r.report && r.report.actualEnd) || r.end,
+          reached: r.report ? Number(r.report.actualBeneficiaries) || 0 : 0,
+          spent: r.report ? Number(r.report.actualBudget) || 0 : 0,
+          outcome: r.report ? r.report.narrative || '' : '',
+        }));
+        const tally = key => {
+          const groups = {};
+          rows.forEach(s => {
+            const g = groups[s[key]] || (groups[s[key]] = { name: s[key], services: 0, reached: 0, spent: 0 });
+            g.services++; g.reached += s.reached; g.spent += s.spent;
+          });
+          return Object.values(groups).sort((a, b) => a.name.localeCompare(b.name));
+        };
+        const add = pick => rows.reduce((t, s) => t + s[pick], 0);
+        const ends = list.map(r => r.end.slice(0, 4)).sort();
+        const period = f.year || (ends[0] === ends[ends.length - 1] ? ends[0] : ends[0] + ' to ' + ends[ends.length - 1]);
+        const scope = this.campus ? this.campus + ' Campus' : (f.campus ? f.campus + ' Campus' : 'All Campuses');
+        const meta = [['Reporting period', period], ['Coverage', scope], ['Category', f.category || 'All categories']];
+        if (f.q.trim()) meta.push(['Search', f.q.trim()]);
+        meta.push(['Date generated', this.todayLabel()]);
+        const notedBy = { asst: 'ed', ed: 'cd', cd: 'pres' }[this.actor];
+        const signers = [{ label: this.actor === 'pres' ? 'Approved by' : 'Prepared by', name: this.me.name, title: this.me.title }];
+        if (notedBy) signers.push({ label: 'Noted by', name: this.person(notedBy).name, title: this.person(notedBy).title });
+        this.activity = null;
+        this.consolidated = {
+          scope, period, meta, rows, signers,
+          showCampus: !this.campus && !f.campus,
+          byCampus: tally('campus'), byCategory: tally('category'),
+          totals: {
+            services: rows.length, reached: add('reached'), spent: add('spent'),
+            barangays: new Set(list.flatMap(r => r.barangays.map(b => b + ', ' + r.municipality))).size,
+          },
+        };
+        this.reportOpen = true;
+      },
+      consolidatedName() {
+        const c = this.consolidated, a = this.activity;
+        if (a) return ('EXTRACK Accomplishment Report ' + a.code).replace(/\s+/g, ' ');
+        return ('EXTRACK Consolidated Report ' + c.scope + ' ' + c.period).replace(/\s+/g, ' ');
+      },
+      printConsolidated() {
+        // the browser offers the page title as the PDF's file name
+        const title = document.title;
+        document.title = this.consolidatedName();
+        window.addEventListener('afterprint', () => { document.title = title; }, { once: true });
+        window.print();
+      },
+      // a CSV opens directly in Excel; the byte order mark keeps the peso sign and ñ readable
+      downloadConsolidated() {
+        if (this.activity) return this.downloadActivity();
+        const c = this.consolidated;
+        const lines = [
+          ['Bohol Island State University'], [c.scope + ' - Extension Services'], ['Consolidated Accomplishment Report'], [],
+          ...c.meta, [],
+          ['Services completed', c.totals.services], ['People reached', c.totals.reached], ['Barangays served', c.totals.barangays], ['Amount spent (PHP)', c.totals.spent], [],
+        ];
+        const summary = (label, groups) => {
+          lines.push([label, 'Services', 'People reached', 'Amount spent (PHP)']);
+          groups.forEach(g => lines.push([g.name, g.services, g.reached, g.spent]));
+          lines.push([]);
+        };
+        if (c.byCampus.length > 1) summary('Campus', c.byCampus);
+        summary('Category', c.byCategory);
+        lines.push(['Code', 'Service', 'Campus', 'Category', 'Location', 'Start', 'End', 'People reached', 'Amount spent (PHP)', 'Outcome']);
+        c.rows.forEach(s => lines.push([s.code, s.title, s.campus, s.category, s.place, s.start, s.end, s.reached, s.spent, s.outcome]));
+        lines.push(['Total', '', '', '', '', '', '', c.totals.reached, c.totals.spent, '']);
+        this.saveCsv(lines);
+      },
+      saveCsv(lines) {
+        // a cell starting with one of these would run as a formula in Excel
+        const cell = v => {
+          let t = String(v === null || v === undefined ? '' : v);
+          if (typeof v === 'string' && /^[=+\-@\t\r]/.test(t)) t = "'" + t;
+          return '"' + t.replace(/"/g, '""') + '"';
+        };
+        const csv = '\uFEFF' + lines.map(l => l.map(cell).join(',')).join('\r\n');
+        const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+        const a = document.createElement('a');
+        a.href = url; a.download = this.consolidatedName() + '.csv';
+        document.body.appendChild(a); a.click(); a.remove();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+      // ---------- one activity's accomplishment report (sample layout until the extension office gives theirs) ----------
+      openActivityReport(r) {
+        if (!r || !r.report) return;
+        const p = r.report, c = campusOf(r);
+        const ed = c === 'Balilihan' ? 'ed' : c + '-ed', cd = c === 'Balilihan' ? 'cd' : c + '-cd';
+        const sign = (label, id) => ({ label, name: this.person(id).name, title: this.person(id).title + ', ' + c + ' Campus' });
+        this.consolidated = null;
+        this.activity = {
+          id: r.id, code: r.code, title: r.title, campus: c + ' Campus', category: r.category,
+          description: r.description || '', partners: r.partners || '', sectors: (r.sectors || []).join(', '),
+          place: r.barangays.join(', ') + ', ' + r.municipality,
+          meta: [['Reference code', r.code], ['Campus', c + ' Campus'], ['Category', r.category], ['Location', r.barangays.join(', ') + ', ' + r.municipality],
+            ['Sectors served', (r.sectors || []).join(', ') || 'Not stated'], ['Partners', r.partners || 'None stated'], ['Date generated', this.todayLabel()]],
+          compare: [
+            ['Dates', fmtDate(r.start) + ' to ' + fmtDate(r.end), fmtDate(p.actualStart) + ' to ' + fmtDate(p.actualEnd)],
+            ['People reached', Number(r.beneficiaries || 0).toLocaleString('en-PH'), Number(p.actualBeneficiaries || 0).toLocaleString('en-PH')],
+            ['Budget', this.peso(r.budget || 0), this.peso(p.actualBudget || 0)],
+          ],
+          raw: { start: r.start, end: r.end, actualStart: p.actualStart, actualEnd: p.actualEnd, target: Number(r.beneficiaries) || 0, reached: Number(p.actualBeneficiaries) || 0, budget: Number(r.budget) || 0, spent: Number(p.actualBudget) || 0 },
+          narrative: p.narrative || '',
+          photos: (p.photos || []).slice(0, 6),
+          morePhotos: Math.max(0, (p.photos || []).length - 6),
+          signers: [sign('Prepared by', ed), sign('Noted by', cd), { label: 'Approved by', name: this.person('pres').name, title: this.person('pres').title }],
+        };
+        this.reportOpen = true;
+      },
+      downloadActivity() {
+        const a = this.activity, x = a.raw;
+        const lines = [
+          ['Bohol Island State University'], [a.campus + ' - Extension Services'], ['Accomplishment Report'], [],
+          ['Title', a.title], ...a.meta, [],
+          ['', 'Planned', 'Actual'],
+          ['Start', x.start, x.actualStart], ['End', x.end, x.actualEnd],
+          ['People reached', x.target, x.reached], ['Budget (PHP)', x.budget, x.spent], [],
+          ['Description', a.description], ['What was done', a.narrative], [],
+          ['Photos', a.photos.map(ph => ph.name).join('; ') + (a.morePhotos ? '; and ' + a.morePhotos + ' more' : '')], [],
+          ...a.signers.map(s => [s.label, s.name, s.title]),
+        ];
+        this.saveCsv(lines);
+      },
       lastEvent(r) { return r.events[r.events.length - 1]; },
       lastTo(r, to) { return [...r.events].reverse().find(e => e.to === to); },
 
@@ -1267,7 +1403,7 @@
       role: 'cd',
       audience: 'cd',
       campus: 'Balilihan',
-      actor: startActor(['cd', 'cdasst'], 'cd'),
+      actor: 'cd',
       tabs: [['all', 'All'], ['waiting', 'Waiting for you'], ['president', 'With the President'], ['returned', 'Returned'], ['overlaps', 'Overlaps to resolve'], ['running', 'Approved and ongoing']],
       get isDirector() { return this.actor === 'cd'; },
       statusText(r) { return r.status === 'submitted' ? 'Waiting for you' : STATUS[r.status].label; },
@@ -1305,7 +1441,7 @@
           this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It is now with the President.', r.id, 'approved', 'ed');
           this.pushNotification('The Campus Director of Balilihan Campus approved ' + r.title + '. It needs your final approval.', r.id, 'request', 'pres');
           this.showAlert({ title: 'Request approved', message: '"' + r.title + '" is approved for Balilihan Campus and sent to ' + this.person('pres').name + ' (University President) for final approval.',
-            notes: [m.resolution ? 'Overlap decision recorded: ' + { allow: 'allow both', coordinate: 'the campuses will coordinate' }[m.resolution] + '.' : ''],
+            notes: [m.resolution ? 'Overlap decision recorded: ' + { allow: 'allow both', coordinate: 'the campuses will coordinate', proceed: 'go ahead as is' }[m.resolution] + '.' : ''],
             next: 'The Extension Director has been notified.', ref: r.id });
         } else if (m.kind === 'return') {
           this.move(r, 'returned', remark);
@@ -1419,6 +1555,54 @@
             waiting: this.requests.filter(r => campusOf(r) === c && r.status === 'for_president').length,
           };
         });
+      },
+      // the President's bar chart: every block is one service. Counts match the campus table below it.
+      chartTip: { on: false, x: 0, y: 0, title: '', status: '', place: '', kind: '' },
+      get campusChart() {
+        const byStart = (a, b) => a.start.localeCompare(b.start);
+        const rows = CAMPUSES.map(c => {
+          const mine = this.requests.filter(r => campusOf(r) === c);
+          const done = mine.filter(r => this.inYear(r) && DONE.includes(r.status)).sort(byStart);
+          const live = mine.filter(r => this.inYear(r) && RUNNING.includes(r.status)).sort(byStart);
+          const list = [...done.map(r => ({ r, kind: 'done' })), ...live.map(r => ({ r, kind: 'live' }))];
+          // 'cc-end' rounds the end of the column; 'cc-join' widens the gap where completed meets ongoing
+          const units = list.map((u, i) => ({ ...u, cls: [u.kind, i === list.length - 1 ? 'cc-end' : '', i > 0 && list[i - 1].kind !== u.kind ? 'cc-join' : ''].join(' ') }));
+          return { c, done: done.length, live: live.length, services: list.length, units,
+            waiting: mine.filter(r => r.status === 'for_president').length };
+        }).sort((a, b) => b.services - a.services || b.waiting - a.waiting || a.c.localeCompare(b.c));
+
+        const total = sum(rows, x => x.services), avg = total / rows.length;
+        const span = Math.max(0, ...rows.map(x => x.services));
+        // a round scale with a little headroom above the tallest column
+        const step = span <= 6 ? 2 : span <= 20 ? 5 : 10;
+        const max = span ? Math.ceil((span + 0.01) / step) * step : 0;
+        const ticks = [];
+        for (let t = 0; max && t <= max; t += step) ticks.push(t);
+
+        const avgLabel = String(+avg.toFixed(1));
+        const names = list => list.length < 2 ? list.join('') : list.slice(0, -1).join(', ') + ' and ' + list[list.length - 1];
+        const most = rows[0].services;
+        const leaders = rows.filter(x => x.services === most).map(x => x.c);
+        const below = rows.filter(x => x.services < avg).map(x => x.c);
+        const plural = n => n === 1 ? 'service' : 'services';
+        let summary = 'No services recorded for ' + this.db.year + ' yet.';
+        if (total && !below.length) summary = 'Every campus has ' + most + ' ' + plural(most) + ' this year.';
+        else if (total) summary = names(leaders) + (leaders.length > 1 ? ' have the most, with ' + most + ' ' + plural(most) + ' each. ' : ' has the most, with ' + most + ' ' + plural(most) + '. ')
+          + names(below) + (below.length > 1 ? ' are' : ' is') + ' below the average of ' + avgLabel + '.';
+
+        return { rows, span, max, ticks, avg, avgLabel, summary,
+          counts: { done: sum(rows, x => x.done), live: sum(rows, x => x.live), wait: sum(rows, x => x.waiting) } };
+      },
+      // one tooltip for the whole chart, kept inside the plot so it can't run off the panel
+      showChartTip(e, u) {
+        const plot = this.$refs.ccPlot.getBoundingClientRect(), box = e.currentTarget.getBoundingClientRect();
+        const half = Math.min(150, plot.width / 2);
+        const x = box.left + box.width / 2 - plot.left;
+        this.chartTip = {
+          on: true, kind: u.kind,
+          x: Math.round(Math.min(Math.max(x, half), plot.width - half)), y: Math.round(box.top - plot.top - 6),
+          title: u.r.title, status: this.statusText(u.r) + ', ' + this.campusName(u.r), place: u.r.barangays.join(', ') + ', ' + u.r.municipality,
+        };
       },
       // overlaps where the similar work belongs to a different campus
       get crossOverlaps() {

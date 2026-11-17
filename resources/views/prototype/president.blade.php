@@ -12,7 +12,7 @@
 {{-- ========== Sidebar ========== --}}
 <aside class="side">
   <div class="side-head">
-  <a class="brand" href="{{ url('/') }}"><img src="{{ asset('images/logo.png') }}" alt="" width="34" height="34"><span><b>EXTRACK</b><small>All campuses</small></span></a>
+  <a class="brand" href="{{ url('/') }}">@include('prototype.partials.mark')<span><b>EXTRACK</b><small>All campuses</small></span></a>
     <button type="button" class="side-toggle" @click="toggleSide()" :aria-expanded="(!sideCollapsed).toString()" :aria-label="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'" :title="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
   </div>
   <nav class="side-nav" aria-label="Sections">
@@ -85,7 +85,7 @@
               <b x-text="r.title"></b>
               <span class="meta"><span x-text="r.barangays.join(', ') + ', ' + r.municipality"></span><span x-text="peso(r.budget)"></span><span x-text="'Waiting ' + waitingSince(r) + (waitingSince(r) === 1 ? ' day' : ' days')"></span></span>
               <span class="flags">
-                <span class="flag bad" x-show="r.overlap" x-text="r.overlap ? 'Overlap, ' + r.overlap.score + '% similar' + (r.overlap.resolution ? ' (Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'will coordinate'}[r.overlap.resolution] + ')' : '') : ''"></span>
+                <span class="flag bad" x-show="r.overlap" x-text="r.overlap ? 'Overlap, ' + r.overlap.score + '% similar' + (r.overlap.resolution ? ' (Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'will coordinate', proceed:'went ahead as is'}[r.overlap.resolution] + ')' : '') : ''"></span>
                 <span class="flag warn" x-show="budgetFor(r).over" x-text="'Over the campus budget by ' + peso(budgetFor(r).by)"></span>
                 <span class="flag warn" x-show="missingDocs(r).length" x-text="'Missing: ' + missingDocs(r).join(', ')"></span>
               </span>
@@ -107,12 +107,14 @@
           <li><button type="button" class="row-main" @click="open(r.id)">
             <b x-text="r.title"></b>
             <span class="meta"><span x-text="campusName(r) + ' and ' + r.overlap.match.campus"></span><span x-text="r.overlap.score + '% similar'"></span></span>
-            <span class="when" :class="r.overlap.resolution ? 't-muted' : 't-bad'" x-text="r.overlap.resolution ? 'Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'campuses will coordinate'}[r.overlap.resolution] : 'Not resolved yet'"></span>
+            <span class="when" :class="r.overlap.resolution ? 't-muted' : 't-bad'" x-text="r.overlap.resolution ? 'Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'campuses will coordinate', proceed:'went ahead as is'}[r.overlap.resolution] : 'Not resolved yet'"></span>
           </button></li>
         </template>
       </ul>
     </article>
   </div>
+
+  @include('prototype.partials.dash-campus-chart')
 
   <article class="panel flush" id="campuses">
     <header class="panel-head pad"><h2>Campuses in <span x-text="db.year"></span></h2><p class="sub">Select a campus to see its requests</p></header>

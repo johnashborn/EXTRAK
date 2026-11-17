@@ -43,7 +43,6 @@ class ExtensionReferenceSeeder extends Seeder
             ['ed', 'Sir Marc Olaguir', 'Extension Director', 'extension_director', 'Balilihan', null],
             ['asst', 'Miss Jaquelyn L. Omapas', "Extension Director's Assistant", 'extension_assistant', 'Balilihan', 'ed'],
             ['cd', 'Mrs. Marietta Macalolot', 'Campus Director', 'campus_director', 'Balilihan', null],
-            ['cdasst', 'Lorna Abella', "Campus Director's Assistant", 'campus_assistant', 'Balilihan', 'cd'],
             ['pres', 'Mr. Anthony M. Penaso', 'University President', 'president', null, null],
         ];
         foreach (array_keys(self::CAMPUSES) as $name) {

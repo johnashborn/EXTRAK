@@ -53,6 +53,7 @@
         <legend>EXTRACK flagged a possible overlap. How should it be handled?</legend>
         <label class="radio"><input type="radio" value="allow" x-model="modal.resolution"> Allow both. The services are different enough.</label>
         <label class="radio"><input type="radio" value="coordinate" x-model="modal.resolution"> Approve, and the campuses will coordinate.</label>
+        <label class="radio"><input type="radio" value="proceed" x-model="modal.resolution"> Go ahead as is. No action needed.</label>
         <p class="hint">To ask for changes in place, dates or scope, return the request instead.</p>
       </fieldset>
       <div class="field"><label for="m-remark" x-text="modal.kind==='approve' ? 'Remark (optional)' : 'Remark (required)'"></label>
@@ -233,3 +234,4 @@
   </template>
 </div>
 <div class="toast" x-show="toast" x-transition :class="toast && 't-'+toast.tone" role="status"><span x-text="toast && toast.msg"></span></div>
+@include('prototype.partials.consolidated')

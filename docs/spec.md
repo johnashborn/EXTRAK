@@ -1,289 +1,283 @@
 # EXTRACK system specification
 
-Status: draft v0.6 (2026-10-29). The process may change based on panel feedback on the research proposal. Anything marked **[Open]** is not final. Record changes in the [change log](#12-change-log).
+Status: draft v0.8 (2026-11-17). After the research proposal defense, the panel scaled the system down to a **repository of completed extension services**. This version adds the BISU Software and Integration Standardization (section 1.4). Anything marked **[Open]** is not final, and section 12 lists those items. Record changes in the [change log](#13-change-log).
 
 ## 1. Purpose
 
-EXTRACK records, approves and reports extension services delivered by Bohol Island State University (BISU) campuses to barangays. It tracks each campus's yearly extension budget. It also warns users when a new request is similar to work already done or planned in the same barangay, including work by other campuses.
+EXTRACK is the central repository of extension services completed by Bohol Island State University (BISU) campuses. Each campus records its finished services with the accomplishment report, photos and supporting documents. EXTRACK stores the files, makes every record searchable, shows the work on a map of Bohol, and produces reports across campuses.
+
+### 1.1 Scope
+
+| In scope | Removed by the panel (2026-11-09) |
+|---|---|
+| Recording completed services (accomplishment reports) | Extension requests and the request form |
+| Storing and serving the documents and photos for each service | Campus Director and University President approval of requests |
+| Search, filters and a read-only view of every record | Request statuses (Draft, Submitted, For President, Returned, Declined, Approved, Ongoing) |
+| Map of services across Bohol | Overlap check before approval |
+| Dashboards with totals by campus, category and year | Yearly campus extension budgets, allocations and top-ups |
+| Consolidated and per-service report export | Approval notifications and overdue warnings |
+| Accounts created by the University President (super admin) | Public sign-up and the role picker on the login page |
+
+EXTRACK no longer decides or approves anything. It records what was done.
+
+### 1.2 Provided by the university
+
+BISU supplies the following. EXTRACK is built so each one can be plugged in without rework.
+
+| Item | What we build until it arrives | **[Open]** to ask |
+|---|---|---|
+| Fonts and colours | **Colours received** (section 1.4): primary #330066, secondary #FFCC00, accent #FFFFFF. Typography and spacing are left to the developers. All fonts and colours sit in one set of design tokens, so changes are a one-file edit | The neutral palette; the university logo file (from Engr. Libay); whether EXTRACK keeps its name and "Crossing" mark or gets an assigned app identity |
+| Database | Laravel migrations and Eloquent only (no engine-specific SQL), so it runs on MySQL, MariaDB, PostgreSQL or SQL Server. Developed on local MySQL | Engine and version, who hosts it, access for development, and whether EXTRACK gets its own database or tables inside an existing one |
+| API | **Standard received** (section 1.4): EXTRACK's own API follows BISU's REST rules. Any university service EXTRACK calls (such as the identity provider) sits behind a service class with a local stand-in | The JSON request, response and error shapes, pagination parameters and rate limits (not yet written in the standard); access to the BISU Postman project |
+| Hosting | **[Open]** not yet stated | Server, domain, HTTPS certificate, mail account for invites and password resets, and backups |
+
+### 1.3 Deadline
+
+- **The system is finished by the end of January 2027.** BISU presents it to the director in February 2027.
+- Section 11.2 has the schedule and the dates by which the university's items are needed.
+
+### 1.4 BISU software and integration standards
+
+Source: *BISU Software and Integration Standardization*, version 1, September 25, 2026. Items the document assigns to a person ("%") and has not filled in yet are marked **Pending** with that person's name.
+
+| # | Standard | What it says | What EXTRACK does |
+|---|---|---|---|
+| 1 | Architecture | Model-View-Controller. Laravel, CodeIgniter and Django are named as already following it | Laravel (MVC). Business logic stays in Actions and Services, called from controllers |
+| 2 | API design | RESTful. Resource names are nouns, lowercase, with underscores | Every endpoint follows this, for example `/api/v1/services`, `/api/v1/services/{id}/documents`, `/api/v1/beneficiary_sectors` |
+| 3 | Authentication | Invite only, no registration unless needed. Google sign-in is for Alumni systems. Zitadel or Clerk as the identity provider | Invite only (section 2.1). **[Open]** Zitadel or Clerk, and who runs it |
+| 4 | Permissions | Role-based access control | Roles and permissions in section 2, enforced on the server |
+| 5a–f | Errors and responses | One standard JSON shape for POST, GET, PATCH, PUT and DELETE requests, responses and errors; standard pagination, filtering and sorting parameters | **Pending** (not written yet). EXTRACK formats every response in one place, so the shape can be changed to the standard without touching each endpoint |
+| 5g | Rate limiting | **Pending**, Daryl Valdez | Laravel's rate limiter, with limits set in configuration |
+| 6 | API versioning | Postman. One BISU Postman project with every member added | Version in the URL (`/api/v1`). Every endpoint is documented in a collection in the BISU Postman project. **[Open]** access to that project |
+| 7a | University logo | One source file, same resolution and size. **Pending**, Engr. Libay | Uses the official file only |
+| 7b | Application identity | Standardised application name, icon and description (examples: Procurement, Alumni Connect) | **[Open]** keep "EXTRACK" and the "Crossing" mark, or use an assigned name and icon |
+| 7c | Colours | Primary #330066, secondary #FFCC00, accent #FFFFFF, and a neutral palette | Design tokens use these. **[Open]** the neutral palette. #FFCC00 is too light for text on white, so it is used for fills and highlights, not text |
+| 7d–e | Typography and spacing | Left to the developers | One type scale and one spacing scale in the design tokens |
+| 7f | Layout | Left sidebar | Left sidebar navigation, as in the prototype |
+| 7g | Footer | Three columns: BISU logo (left), copyright and year (centre), social media and developers (right). Terms and Conditions link | As specified. **[Open]** the Terms and Conditions text and the social media links |
+| 7h | Header | Two columns: app logo and name (left); user profile, settings and logout (right) | As specified |
+| 7i | Component library | **Pending**, Daryl Valdez | **[Open]** its technology and when it is available. This affects the choice of UI stack (section 11) |
+| 7j | UX and interaction | Loading states (developers; background motion graphics with the motion.dev library), notifications (developers), others (developers) | Loading states use motion.dev. Notifications appear in the notification center (7m) |
+| 7k–l | Design philosophy and visual style | Minimalism, intuitive for users | Plain screens, few actions per screen |
+| 7m | University-wide application shell | University header; application switcher (a portal linking every BISU system); user profile on the right of the header; notification center beside the profile; breadcrumbs | All five are included. **[Open]** whether BISU provides the shell as shared components, and where the application switcher gets its list of systems |
+| — | Other matters | Benefits for faculty developers; subscriptions and other software requirements; official repository | **[Open]** where the official repository is, so EXTRACK's code is kept there |
 
 ## 2. Roles
 
-| Role | Scope | Creates requests | Approves | Notes |
+| Role | Scope | Adds and edits records | Views records | Manages the system |
 |---|---|---|---|---|
-| Extension Director (Director of Extension) | Own campus | Yes, the only role that creates requests | No | Carries out approved services and submits accomplishment reports |
-| Extension Director's Assistant | Own campus | Drafts for the Extension Director | No | Works under one Extension Director |
-| Campus Director | Own campus | No | First approval of their own campus's requests only | Cannot see or approve other campuses' requests. Monitors campus extension work and budget |
-| Campus Director's Assistant | Own campus | No | No | Prepares reviews for the Campus Director |
-| University President | All campuses | No | Final approval of every request (section 4) | Sees all campuses. Sets each campus's yearly extension budget (section 6) |
-| System Admin | System | No | No | Manages users, campuses, barangays and settings |
+| University President (**super admin**) | All campuses | **[Open]** Can edit or delete any record | All campuses | Yes: accounts, campuses, categories, barangays, sectors and settings |
+| Extension Director | Own campus | Yes, for their own campus | **[Open]** Own campus only, or all campuses | No |
+| Extension Director's Assistant **[Open]: keep this role?** | Own campus | Encodes records for the Extension Director (section 3.2) | Same as their director | No |
+| Campus Director **[Open]: keep this role?** | Own campus | No | Own campus | No |
 
-### 2.1 Assistants
+- The separate System Admin role is gone. The University President is the super admin.
+- **[Open]** Who does the day-to-day account work? If the President delegates it, a staff member (for example in the Extension Office) could get an "Admin" account with the same system rights but no reporting role.
 
-- Every assistant has their own account, linked to one director (`users.principal_id`). Assistants do not use the director's login.
-- An assistant sees their director's dashboard and records, and can do everything the director can except approve, return, decline, or sign off a final report.
-- Records show both people: "Submitted by Sir Marc Olaguir (Extension Director), encoded by Miss Jaquelyn L. Omapas (Assistant)".
-- Deactivating an assistant does not affect the director's account or records.
+### 2.1 Accounts
+
+- Invite only, as the BISU standard requires (section 1.4, item 3). There is no public sign-up. The super admin invites every user, with a fixed role and campus. The login page has no role picker.
+- Sign-in goes through the university's identity provider, Zitadel or Clerk **[Open]: which one, and who runs it**. Passwords, password resets and invite emails are then handled by the identity provider, and EXTRACK stores no passwords. EXTRACK keeps each user's role, campus and active status.
+- Fallback if the identity provider is not ready by the January cutoff: Laravel's own login with invite links. **[Open]** which mail service BISU allows for the invite emails.
+- Google sign-in is not used. The standard reserves it for Alumni systems.
+- Accounts are deactivated, never deleted, so names stay on the records they created.
+- An assistant's account is linked to one Extension Director (`users.principal_id`).
 
 ### 2.2 Campus scoping
 
-- Every role except President and System Admin sees only its own campus's records.
-- The scope is enforced in queries (Eloquent global scope and policies), not just hidden in the UI.
-- Exceptions:
-  - The overlap check (section 5) shows a limited summary of other campuses' activities: title, campus, barangay, dates and status.
-  - The extension map (section 8) shows every campus's ongoing and completed services so directors can learn from each other: title, campus, barangay, dates, category, description, beneficiaries, partners, the accomplishment narrative and photos. Other campuses' budgets are not shown.
+- Campus-bound users can add and edit only their own campus's records. This is enforced in queries and policies, not only hidden in the UI.
+- **[Open]** Can campus users read other campuses' records (the earlier design showed every campus's completed work on the map so directors could learn from each other), or only their own?
 
-## 3. Extension requests
+## 3. Service records
 
-An **extension request** is the main record. It starts as a request and becomes the activity once approved, so a service has one record from request to archive.
+A **service record** is one completed extension service with its accomplishment report. It replaces the old extension request.
 
-### 3.1 Who requests and who approves
+### 3.1 Fields
 
-Requests go one way only. Every request needs two approvals:
-
-| Step | Who |
-|---|---|
-| Creates and submits the request | Extension Director (an assistant can draft it) |
-| First approval | Campus Director of the **same campus**. A Campus Director cannot approve, return or decline another campus's requests |
-| Final approval | University President |
-| Carries out the service and reports | Extension Director (and assistant) |
-
-The Extension Director does not approve requests.
-
-### 3.2 Fields
-
+- Reference code, generated by EXTRACK (for example `CAL-2026-014`) **[Open]: or the code the Extension Office already uses**
+- Campus
 - Title
-- Description: what will be done, for whom, and the expected change
-- Category: Agriculture & Fisheries, Livelihood, Health, Education, Environment, Technology & Digital, Others **[Open]: confirm the list with the extension office**
-- Municipality and barangay (one or more barangays)
-- Start and end dates
-- Proposed budget (₱). It is charged to the campus's extension budget for the year of the start date.
-- Expected beneficiaries: number and sector, such as fisherfolk, women, youth or senior citizens. The extension office can add a sector that is not on the list; added sectors stay available for later requests. **[Open]: should new sectors need the System Admin's approval?**
+- Description: what was done and for whom
+- Category: Agriculture & Fisheries, Livelihood, Health, Education, Environment, Technology & Digital, Others **[Open]: confirm the list with the Extension Office**
+- Municipality and barangays (one or more)
+- Actual start and end dates
+- Beneficiaries reached: number and sectors (fisherfolk, women, youth, senior citizens and so on)
 - Partner agencies or LGU (optional)
-- Supporting documents: one or more files, each tagged as barangay letter of request, project proposal, budget breakdown, MOA or partnership letter, or other. The Campus Director and the University President can view and download every file attached to a request.
-  - A request can be submitted without the barangay letter or the project proposal, but the form, the Campus Director and the President all see a "Missing documents" warning. **[Open]: confirm which documents are required, and whether a missing one should block submission**
-
-### 3.3 Accomplishment report (after the service)
-
-- Actual dates, actual budget used, actual beneficiaries (number and sector)
+- Amount spent (₱), for information only. There is no budget tracking.
 - Narrative of what was done and the outcome
-- Photos and attendance sheets
-- Encoded by the Extension Director or their assistant, and submitted by the Extension Director
+- Photos
+- Supporting documents (section 4)
+- Encoded by, published by, and the dates of both
 
-**[Open]** Does the Campus Director need to approve the accomplishment report before the request is marked Completed?
+### 3.2 Record states
 
-## 4. Workflow
-
-### 4.1 Statuses
-
-```
-Draft ─submit─▶ Submitted ─campus approves─▶ For President ─President approves─▶ Approved ─start─▶ Ongoing ─report─▶ Completed ─▶ Archived
-                  │  ▲                            │  
-          return  │  │ resubmit           return / decline
-                  ▼  │                            │
-                Returned ◀────────────────────────┘
-                  │
-               decline ─▶ Declined
+```text
+Draft ─publish─▶ Published ─(super admin)─▶ Deleted (soft, with a reason)
 ```
 
-| Status | Meaning | Who moves it forward |
+| State | Meaning | Who can see it |
 |---|---|---|
-| Draft | Being written, only visible to the Extension Director and their assistant | Extension Director |
-| Submitted | Waiting for campus approval | Campus Director of the same campus |
-| For President | Approved at campus level, waiting for final approval | University President |
-| Returned | Sent back with a remark, so the Extension Director can edit and resubmit. A resubmitted request starts again at campus approval | Extension Director |
-| Declined | Closed, will not proceed. A remark is required | — |
-| Approved | Cleared to proceed, not yet started | Extension Director |
-| Ongoing | Being carried out | Extension Director |
-| Completed | Accomplishment report submitted | — |
-| Archived | Read-only, in the historical archive | Automatic |
+| Draft | Being encoded, can be incomplete | The campus's Extension Director and their assistant |
+| Published | In the repository, counted in dashboards and reports | Everyone allowed to view the campus (section 2.2) |
+| Deleted | Hidden from the repository, kept in the database with who deleted it and why | Super admin |
 
-- Returning or declining always requires a remark. The Campus Director and the President can both return or decline.
-- Every status change is written to `request_events` (who, when, from, to, and remark).
-- **[Open]** When the President returns a request, does it go back to the Extension Director (current design) or to the Campus Director?
-- **[Open]** When does a Completed request move to Archived: right away, at the end of the quarter, or at the end of the year?
+- **[Open]** Who publishes: only the Extension Director (the assistant only drafts), or the assistant too?
+- **[Open]** Does a published record need the Campus Director's confirmation first? The panel removed approvals, so the current design says no.
+- Editing a published record is allowed for its campus's Extension Director and is written to the activity log (section 9). **[Open]** whether records lock after a period, such as the end of the reporting year.
 
-### 4.2 Overdue rules
+### 3.3 Past reports
 
-- An Approved request that has passed its start date without moving to Ongoing gets an "Overdue start" warning.
-- An Ongoing request that is more than 14 days past its end date without a report gets "Report overdue". **[Open]: confirm the 14 days**
+- **[Open]** Should the Extension Office's existing reports from earlier years be encoded into EXTRACK? If so, which years, who encodes them, and is a scanned report enough without every field filled in?
 
-## 5. Overlap check
+## 4. Document storage
 
-- Runs when a request is saved as a draft or submitted. It runs as a queued job, and the result shows on the form and on the request.
-- It compares against all non-declined requests from **all campuses** within ±12 months.
-- **Signals and weights** (weights and threshold are settings, tuned once real data is available):
-  - **Content (50%):** how similar the titles and descriptions are (see below)
-  - **Location (30%):** same barangay counts fully, same municipality partly
-  - **Timing (20%):** overlapping dates count fully; dates within 2 months or 6 months count partly
-- If the score is at or above the threshold (default 70%), the request is flagged with the score, the matching record and the reason for the match.
+EXTRACK stores the documents for each service.
 
-### 5.1 Content similarity
+- **Document types:** accomplishment report (the signed file), attendance sheets, photos, barangay letter of request, project proposal, MOA or partnership letter, and other. Each file is tagged with its type. **[Open]** which types are required before a record can be published.
+- **File formats:** PDF, DOCX, XLSX, JPG, PNG and WebP. The limit is 20 MB per file. **[Open]** confirm the limit with how large the scanned reports are.
+- **Storage:** private disk. Files are never public and are served only through EXTRACK to users allowed to view the record. **[Open]** where the files live: a BISU server or a cloud service, decided with the university's IT office.
+- **Viewing:** PDFs and images open in the browser. Each file can be downloaded on its own, with its original file name. **[Open]** a "Download all" ZIP per record.
+- **Backups:** the database and the files are backed up together on a schedule. **[Open]** frequency and where the backups are kept.
+- **Privacy (Data Privacy Act of 2012):** attendance sheets and photos contain names, signatures and faces. Only signed-in users with access to the record can open them, and every download is logged. **[Open]** how long records and files are kept.
+- Replacing a file keeps the old version until the record is saved, and the change is logged.
 
-**Prototype (research proposal):** rule-based keyword matching. Titles and descriptions are split into keywords, common words are removed, and shared keywords are counted. Words in the same theme (for example tilapia and fishpond, both fisheries) count as partial matches. The shared keywords are shown as the reason for the flag.
+## 5. Repository
 
-**Production:** AI text embeddings, so requests are compared by meaning rather than exact words, including across English, Filipino and Cebuano.
+- **List:** every published record the user can see, newest first.
+- **Search:** title, description, narrative, code, municipality, barangay and partners. **[Open]** searching the text inside uploaded PDFs.
+- **Filters:** campus (for users who can see more than one), year, category, municipality and barangay, sector.
+- **Sort:** newest, oldest, most people reached, title.
+- **Record page:** all fields, a photo gallery, the document list with view and download, who encoded and published it, and the edit history.
+- **Similar services (optional) [Open]:** the earlier overlap check could become a "similar past services in this barangay" panel on the record page, using the same keyword method, or AI text embeddings in production. It is advice only and never blocks anything.
 
-1. **Filter by rules.** Only non-declined requests within ±12 months are compared. Location and timing are scored as above.
-2. **Embeddings for content.** When a request is saved, a queued job converts its title and description into an embedding (a vector representing its meaning) and stores it with the request. Content similarity is the cosine similarity between the two stored vectors, so the check itself needs no external call.
-   - Model options: a hosted embeddings service (for example Voyage AI), or an open-source multilingual sentence-embedding model hosted on a BISU server so that no data leaves the university. **[Open]** which one, decided with the university's IT office.
-3. **AI explanation (optional).** For flagged pairs only, a language model (for example Claude Haiku 5.5) writes a one or two sentence explanation for the Campus Director: what the two activities have in common and a suggested action. It is advice only.
+## 6. Dashboards
 
-Rules for the AI parts:
+### 6.1 University President
 
-- **People decide.** The AI only scores and explains. It never approves, returns, declines or blocks a request; the Campus Director resolves every flag and the President can change it.
-- **Privacy (Data Privacy Act of 2012).** Only the activity title, description and category are sent to an AI service, never beneficiary names, contact details or attachments.
-- **Fallback.** If the embedding or AI service is unavailable, EXTRACK falls back to the keyword method and marks the result as such, so submissions are never held up.
-- **Evaluation.** Before going live, past requests are labelled by the extension office as duplicates or not, and the keyword and embedding methods are compared on precision (how many flags were real) and recall (how many real duplicates were caught).
-- A flag does not block submission. The Campus Director and the President both see it. The Campus Director records a resolution, and the President can change it. The Extension Director sees the flag but does not resolve it:
-  - **Allow both:** the services are different enough
-  - **Coordinate:** the campuses will work together
-  - **Revise:** returned to the Extension Director to change place, dates or scope
+1. Totals for the selected year: services completed, people reached, barangays served, amount spent
+2. Services completed per campus (chart), and a campus table: services, people reached, barangays, amount spent
+3. Services by category
+4. Recently published records across all campuses
+5. Map of all services
+6. Drill-down from any number to the records behind it
 
-## 6. Campus extension budget
+### 6.2 Extension Director (and assistant)
 
-Each campus has a fixed extension budget per year. Requests do not need a separate budget approval, but EXTRACK tracks how much of the budget is used.
+1. "Add completed service" button
+2. Drafts not yet published
+3. Campus totals for the year: services, people reached, barangays, amount spent
+4. Recently published records from the campus
+5. Campus coverage map
 
-- The University President sets the university extension budget for the year (`university_budgets`): the total available for extension across all campuses.
-- The President divides the total among the campuses. Whatever is not allocated stays as the **university reserve**.
-  - If the campus allocations add up to more than the total, EXTRACK warns the President but allows it.
-  - **Split the total** fills the campus amounts automatically: equally, in the campuses' current shares, by the number of requests this year, or by the number of barangays served this year. The President can keep part of the total as reserve and adjust any amount before saving.
-  - **Top up from reserve** moves an amount from the reserve to one campus during the year. A reason is required, and the top-up is logged and notified like any other budget change.
-- The University President sets each campus's allocation per year (`campus_budgets`) on the Campus budgets page in the President's sidebar, and can change it during the year. Each change is recorded with who made it, when, and the old and new amounts.
-- An allocation can be set lower than what the campus has already committed and spent. EXTRACK warns the President but allows it; the campus then shows as over budget.
-- When a campus's allocation changes, its Extension Director and Campus Director are notified.
-- For each campus and year, EXTRACK shows:
+### 6.3 Campus Director (if the role is kept)
 
-| Figure | How it's calculated |
-|---|---|
-| Allocation | Set by the University President |
-| University reserve | University extension budget − sum of campus allocations |
-| Pending | Proposed budget of requests that are Submitted or For President |
-| Committed | Proposed budget of requests that are Approved or Ongoing |
-| Spent | Actual budget of Completed and Archived requests |
-| Remaining | Allocation − Committed − Spent |
+Read-only: the campus totals, the campus's records and the map.
 
-- If a request's proposed budget is more than the Remaining amount (or Remaining minus Pending), the form, the Campus Director and the President see a warning: "This request is ₱X over Calape Campus's remaining 2026 extension budget". The warning does not block submission or approval.
-- **[Open]** Can a campus move unused budget into the next year, or does each year start fresh?
+## 7. Reports and export
 
-## 7. Dashboards
+- **Consolidated report:** whatever the repository filters show (for example one campus, one year, one category), with totals, summaries by campus and category, and the list of services. Saved as PDF or downloaded for Excel.
+- **Per-service report:** one record's accomplishment report with its details, photos and signature lines. Saved as PDF or downloaded for Excel.
+- Both layouts in the prototype are samples. **[Open]** the Extension Office's or CHED's official templates, the reporting period (quarter, semester or year), and the required file type.
 
-### 7.1 Extension Director (and assistant)
+## 8. Map
 
-1. Action counts, each clickable to a filtered list: *Waiting for approval*, *Returned to me*, *Reports overdue*, *Overlaps flagged*
-2. Needs your action: returned requests to edit and resubmit, overdue accomplishment reports, approved services about to start, and drafts. No approve buttons, since the Extension Director does not approve
-3. Waiting for approval: submitted requests and whether each is with the Campus Director or the President, with overlap and budget flags
-4. Ongoing services and upcoming end dates
-5. Campus budget for the year: allocation, committed, spent, remaining
-6. Campus coverage map: barangays shaded by number of services
-7. "New request" button
+A map of Bohol with a pin for every barangay that has a published service. Pins show the number of services and the campus colour. Selecting a pin lists that barangay's services, and selecting a service opens its record. Filters: campus, category and year.
 
-### 7.2 Campus Director (and assistant)
+**[Open]** Map provider: the prototype uses OpenStreetMap through Leaflet. Google Maps needs an API key with billing. Barangay coordinates also need an official source.
 
-Shows only the Campus Director's own campus.
+## 9. Activity log and notifications
 
-1. Action counts: *Waiting for my approval*, *Overlaps to resolve*, *Over budget*
-2. Requests from the Extension Director waiting for approval, with the overlap result and budget warning shown inline, and approve, return and decline actions (Campus Director only, not the assistant)
-3. Requests already sent to the President and their status
-4. Ongoing services on campus
-5. Campus budget for the year and a campus summary: services, beneficiaries
+- **Activity log:** every create, publish, edit, delete, file upload, file replacement and file download, with who, when and what changed. The super admin can view it.
+- **Notifications (in-app):** a record is published (to the President, and to the Campus Director if the role is kept); an account is created (invite email to the new user). **[Open]** whether email is sent for anything besides the invite.
 
-### 7.3 University President
+## 10. Data model (v2)
 
-1. **Waiting for your approval:** every campus-approved request, showing the campus, overlap flag and budget warning, with approve, return and decline actions
-2. University totals for the selected year: services, beneficiaries, budget spent, barangays reached
-3. Campus comparison table: services, completed, ongoing, beneficiaries, budget used vs allocation, overdue reports
-4. Bohol map of all barangays served, filterable by campus and category
-5. Overlaps between campuses
-6. Trend by quarter and year
-7. Drill-down from any number to the records behind it
-
-## 8. Other screens
-
-- **All requests:** search and filters for campus (President only), barangay, status, category and dates
-- **Request detail:** fields, attachments, overlap result, budget impact, timeline of `request_events`, and a remarks thread
-- **Reports & export:** consolidated accomplishment report by campus, quarter or category, including budget use, exported to PDF and Excel (CHED-ready)
-- **Historical archive:** read-only list of Archived services, with the accomplishment report photos
-- **Extension map** (all roles): a map of Bohol with a pin for every barangay that has received an ongoing or completed service from any campus. Pins show the number of services and the campus colour. Selecting a pin lists that barangay's services; selecting one shows its details and photos. Filters: campus, category, ongoing or completed. **[Open]** Map provider: the prototype uses OpenStreetMap through Leaflet; Google Maps needs an API key with billing. Barangay coordinates also need an official source.
-- **Notifications** (section 9)
-- **Settings** (Admin): users, roles, director–assistant links, campuses, municipalities, barangays, categories, yearly campus budgets and thresholds
-
-## 9. Notifications
-
-| Event | Who is notified |
-|---|---|
-| Request submitted | Campus Director of the same campus and their assistant |
-| Approved at campus level | Extension Director, and the President |
-| Request returned or declined | Extension Director and their assistant |
-| Final approval by the President | Extension Director and Campus Director |
-| Overlap flagged | Extension Director and Campus Director |
-| Request over remaining budget | Campus Director (with the request) |
-| End date in 7 days | Extension Director and assistant |
-| Report overdue | Extension Director and assistant, plus the Campus Director |
-
-Notifications are in-app (Filament database notifications). **[Open]** Should email be sent too?
-
-## 10. Data model (v1)
-
-```
+```text
 campuses            id, name, municipality_id
-campus_budgets      id, campus_id, year, allocation          unique (campus_id, year)
-university_budgets  id, year, amount                         unique (year)
-budget_changes      id, year, campus_id (null = university total), kind (set | topup),
-                    from_amount, to_amount, reason, changed_by, created_at
 municipalities      id, name
-barangays           id, municipality_id, name
+barangays           id, municipality_id, name, latitude, longitude
 categories          id, name
-users               id, name, email, password, role, campus_id (null for President/Admin),
-                    principal_id (assistant → director), is_active
-extension_requests  id, code (e.g. CAL-2026-014), campus_id, budget_year, requested_by, encoded_by,
-                    title, description, category_id, start_date, end_date,
-                    proposed_budget, expected_beneficiaries, beneficiary_sectors (json), partners,
-                    status, campus_approved_by, campus_approved_at, president_approved_at,
-                    timestamps, soft deletes
-request_barangay    extension_request_id, barangay_id
-request_events      id, extension_request_id, user_id, acting_for_id, from_status, to_status, remark, created_at
-request_remarks     id, extension_request_id, user_id, body, created_at
-accomplishments     id, extension_request_id, actual_start, actual_end, actual_budget,
-                    actual_beneficiaries, sectors (json), narrative, submitted_by, encoded_by, submitted_at
-attachments         id, attachable_type, attachable_id, kind (letter|document|photo|attendance), path, uploaded_by
-overlap_flags       id, request_id, matched_request_id, score, signals (json),
-                    method (keyword | embedding), explanation (AI text, nullable),
-                    resolution, resolved_by, resolved_at, remark
-request_embeddings  extension_request_id, model, vector, source_hash, created_at   (production)
-settings            key, value (overlap_threshold, report_grace_days)
+sectors             id, name
+users               id, name, email, password, role, campus_id (null for the President),
+                    principal_id (assistant → Extension Director), is_active, last_login_at
+services            id, code, campus_id, title, description, category_id,
+                    start_date, end_date, beneficiaries, partners, amount_spent, narrative,
+                    state (draft | published), encoded_by, published_by, published_at,
+                    timestamps, soft deletes, deleted_by, delete_reason
+service_barangay    service_id, barangay_id
+service_sector      service_id, sector_id
+documents           id, service_id, kind (report | attendance | photo | letter | proposal | moa | other),
+                    original_name, path, mime, size, uploaded_by, replaced_by_id, created_at
+activity_log        id, user_id, action, subject_type, subject_id, changes (json), created_at
+settings            key, value
 notifications       Laravel default
 ```
 
+Removed from v1: `extension_requests` (replaced by `services`), `request_events`, `request_remarks`, `overlap_flags`, `request_embeddings`, `university_budgets`, `campus_budgets`, `budget_changes`.
+
 ## 11. Implementation notes
 
-- Laravel 13 + Filament 3, one panel at `/admin` with a dashboard that shows different widgets per role
-- Roles: a PHP enum `App\Enums\Role` (`ExtensionDirector`, `ExtensionAssistant`, `CampusDirector`, `CampusAssistant`, `President`, `Admin`) plus policies
-- Campus scoping: a global scope on `ExtensionRequest` applied when the user is campus-bound. `CampusApproveRequest` also checks in its policy that the Campus Director's campus matches the request's campus
-- Business logic in Actions (`app/Actions`): `SubmitRequest`, `CampusApproveRequest`, `PresidentApproveRequest`, `ReturnRequest`, `DeclineRequest`, `StartRequest`, `SubmitAccomplishment`, `ResolveOverlap`
-- Status changes go only through these Actions, which write the `request_events` row and send notifications
-- Budget figures come from a `CampusBudgetService` (allocation, pending, committed, spent, remaining for a campus and year)
-- Overlap detection: a `DetectOverlaps` queued job that calls an `OverlapScorer` service, so the scoring method can be replaced later
-- Seed data: 6 campuses (Main/Tagbilaran, Balilihan, Bilar, Calape, Candijay, Clarin), Bohol municipalities and barangays, sample budgets, and demo users for each role
+- Laravel 13 (MVC, as the BISU standard requires). **[Open]** the UI stack, to be settled in architecture planning. It has to fit the university header, footer, left sidebar, application shell and component library (section 1.4), so the prototype's Filament panel may not carry over.
+- REST API under `/api/v1`, following the BISU naming rules, with responses formatted in one place (section 1.4, items 2, 5 and 6), and a Postman collection in the BISU project.
+- Roles: a PHP enum `App\Enums\Role` (`President`, `ExtensionDirector`, `ExtensionAssistant`, `CampusDirector`) and policies. The President's super admin rights come from the role, not a separate flag. **[Open]** add `Admin` if the President delegates account work.
+- Campus scoping: a global scope on `Service` when the user is campus-bound, plus policy checks on every action.
+- Business logic in Actions (`app/Actions`): `CreateService`, `UpdateService`, `PublishService`, `DeleteService`, `AttachDocument`, `ReplaceDocument`, `CreateUser`, `DeactivateUser`. Each writes the activity log.
+- Files: a controller streams documents from the private disk after a policy check and logs the download.
+- Filament resources: `UserResource` (super admin only), `ServiceResource`, and reference data (campuses, barangays, categories, sectors).
+- Exports: PDF (a print layout or a PDF library) and Excel (CSV now, XLSX if the template needs it).
 
-### Prototype storage (until the full build)
+### 11.1 What changes in the prototype
 
-- The prototype dashboards' data lives in the tables in section 10: `campuses`, `officials` (the people in the workflow, separate from login `users`), `categories`, `beneficiary_sectors`, `barangays`, `extension_requests` with `request_barangay`, `request_sector`, `request_events`, `request_remarks` and `overlap_flags`, `accomplishment_reports`, `attachments` (request documents and report photos), `dashboard_notifications`, `university_budgets`, `campus_budgets`, `budget_changes` and `settings`.
-- The dashboards still load and save everything at once. `App\Services\Prototype\DashboardDataStore` builds that from the tables and writes each save back into them, and bumps `settings.data_version`, which other open dashboards check every few seconds. Last save wins.
-- Uploaded photos and documents are recorded in `prototype_files`, with the files on the private local disk (`storage/app/private/prototype`). Files are served only to signed-in users, up to 20 MB each. Report photos accept JPG, PNG, WebP and GIF.
+The prototype shown at the defense still has the request and approval workflow. To match this spec:
 
-### Build order
+- Remove: the request form and drafts, the Campus Director's approval screens, the President's final approval, the overlap decision, campus budgets, and approval notifications.
+- Keep and rework: the accomplishment report form becomes "Add completed service"; the Archive becomes the repository; the map, the President's per-campus chart and both exports stay.
+- Replace the login role picker with fixed roles on each account, and add a Users page for the President.
 
-1. Roles enum, campuses, municipalities, barangays, categories, users with assistants (plus seeders)
-2. `ExtensionRequest` resource: create, edit, list, detail, with campus scoping and policies
-3. Workflow Actions and statuses (campus approval, then President approval), `request_events`, and remarks
-4. Campus budgets and the budget warning
-5. Accomplishment reports and archive
-6. Overlap check
-7. Role dashboards (Extension Director, Campus Director, President)
-8. Notifications
-9. Reports & export (PDF/Excel)
+These changes go straight into the production build (section 11.2) rather than into the prototype.
 
-## 12. Change log
+### 11.2 Build order and schedule
+
+The deadline is the end of January 2027 (section 1.3). That leaves about 11 working weeks, with the Christmas break as buffer.
+
+| Week | Dates | Build | Needed from BISU by the end of the week |
+|---|---|---|---|
+| 0 | Nov 9 to 15 | Meeting this week; settle section 12; finalise this spec; send BISU the list in section 1.2 | Answers to section 12, and an IT contact person |
+| 1 to 2 | Nov 16 to 29 | Roles, accounts and the Users page (super admin); campuses, municipalities, barangays, categories, sectors, seeders; `Service` resource with campus scoping and policies | Database engine, version and development access (Nov 27) |
+| 3 to 4 | Nov 30 to Dec 11 | Document storage (upload, tagging, view, download, replace, activity log); repository list, search, filters and record page | API documentation and test credentials; hosting details (Dec 11) |
+| 5 | Dec 14 to 23 | Dashboards (President, Extension Director, Campus Director) and the map | Brand guide, fonts and colours (Dec 18) |
+| — | Dec 24 to Jan 3 | Holiday break; buffer only | Official report template (by Jan 4) |
+| 6 to 7 | Jan 4 to 15 | Reports and export; notifications and invite emails; backups; apply the university brand; connect the university database and API | — |
+| 8 | Jan 18 to 22 | Testing with the Extension Office; encode a sample of past reports | Extension Office staff available to test |
+| 9 | Jan 25 to 29 | Fixes; deploy to the BISU server; user guide and handover | Server ready |
+| Feb 2027 | | Presentation to the director | |
+
+- If a university item is late, building continues against the placeholder in section 1.2, and connecting the real item moves to weeks 6 to 7. Anything not received by **Jan 15** ships with the placeholder and is listed as pending in the handover.
+- The prototype is not reworked separately. Time goes into the production build, which reuses the prototype's screen designs, map and report layouts.
+
+## 12. Open questions
+
+1. Roles: keep the Campus Director and the Extension Director's Assistant? Who publishes a record? Does the President do account work personally or delegate it?
+2. Visibility: can campuses see each other's records, or only their own?
+3. Records: are approvals truly gone, or does the Campus Director still confirm a report? Do records lock after a period?
+4. Fields: the official category list and reference code format.
+5. Documents: which are required, the file size limit, and whether past years' reports are encoded.
+6. Storage: a BISU server or cloud, backups, and how long records are kept.
+7. Reports: the official template, reporting period and file type.
+8. Similar services panel: keep it (and the AI method), or drop it?
+9. Email: which service, and what gets emailed.
+10. Map: provider and the source of barangay coordinates.
+11. University items (section 1.2): what the API is for, the database engine and hosting, the brand guide, and the dates each will be delivered.
+12. Who "the director" in February is, and what they need to see in the presentation.
+13. Identity provider: Zitadel or Clerk, who runs it, and when EXTRACK can connect to it.
+14. Component library (Daryl Valdez): its technology and when it is available.
+15. The standard JSON shapes, pagination parameters and rate limits: when they are published.
+16. Application identity: EXTRACK's official name, icon and description, and the university logo file (Engr. Libay).
+17. The neutral palette, the Terms and Conditions text and the footer's social media links.
+18. Whether BISU provides the application shell (header, application switcher, notification center) as shared components.
+19. The official repository for the code, and access to the BISU Postman project.
+
+## 13. Change log
 
 | Date | Change | Reason |
 |---|---|---|
@@ -296,3 +290,8 @@ notifications       Laravel default
 | 2026-10-29 | The University President sets each campus's yearly extension budget (previously the System Admin). Changes are logged and the campus is notified | The President sets the budgets |
 | 2026-10-29 | The President also sets the university extension budget, divides it among campuses (with an automatic split), and keeps the rest as a reserve for mid-year top-ups | Requested by the user |
 | 2026-10-29 | Overlap check: documented the prototype's keyword method and weights, and set the production design to AI text embeddings with an optional AI explanation, people deciding, privacy limits, a keyword fallback and an evaluation plan. Added the budget tables to the data model | Planning for production |
+| 2026-11-07 | Accounts are created by an admin; no public sign-up. Consolidated report export added with a sample layout | Decided by the user |
+| 2026-11-08 | Removed the Campus Director's Assistant role. Added per-service report export with a sample layout | The role had no task of its own; requested by the user |
+| 2026-11-09 | **Scaled down to a repository of completed services.** Removed extension requests, the approval workflow, request statuses, the overlap check before approval, campus budgets and approval notifications. Added document storage, record states (Draft, Published), the activity log and data model v2. The University President is the super admin and the System Admin role is removed. Listed the open questions for this week's meeting | Proposal defense panel |
+| 2026-11-09 | The university provides the fonts, colours, API and database (section 1.2). Deadline set: finished by the end of January 2027, presented to the director in February 2027. Added the schedule (section 11.2). The prototype will not be reworked separately | Told to the team after the defense |
+| 2026-11-17 | Added the BISU Software and Integration Standardization (section 1.4): MVC, REST API naming, invite-only sign-in through Zitadel or Clerk, role-based access, standard JSON responses, Postman, university colours, header, footer, left sidebar, application shell and motion.dev loading states. Accounts now sign in through the identity provider (section 2.1). The UI stack is reopened for architecture planning | BISU standards document |

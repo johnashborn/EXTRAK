@@ -2,7 +2,7 @@
 @if (request()->routeIs('filament.admin.auth.*'))
     <aside class="extrak-art">
         <div class="x-brand">
-            <img src="{{ asset('images/logo.png') }}" alt="" onerror="this.style.display='none'">
+            <img src="{{ asset('images/brand/extrack-mark-reversed.svg') }}" alt="" onerror="this.style.display='none'">
             <b>EXTRACK</b>
         </div>
 

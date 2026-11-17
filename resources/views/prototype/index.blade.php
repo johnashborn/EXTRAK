@@ -11,7 +11,7 @@
 </head>
 <body class="chooser-page">
 <main class="chooser">
-  <a class="brand" href="{{ url('/') }}"><img src="{{ asset('images/logo.png') }}" alt="" width="34" height="34"><span><b>EXTRACK</b><small>Balilihan Campus</small></span></a>
+  <a class="brand" href="{{ url('/') }}">@include('prototype.partials.mark')<span><b>EXTRACK</b><small>Balilihan Campus</small></span></a>
   <h1>Which dashboard do you want to open?</h1>
   <p class="sub">This is a prototype for the research proposal. All three dashboards share the same sample data, so a request submitted or approved on one shows up on the others.</p>
   <ul class="choices">

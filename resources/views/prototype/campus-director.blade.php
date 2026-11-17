@@ -12,7 +12,7 @@
 {{-- ========== Sidebar ========== --}}
 <aside class="side">
   <div class="side-head">
-  <a class="brand" href="{{ url('/') }}"><img src="{{ asset('images/logo.png') }}" alt="" width="34" height="34"><span><b>EXTRACK</b><small>Balilihan Campus</small></span></a>
+  <a class="brand" href="{{ url('/') }}">@include('prototype.partials.mark')<span><b>EXTRACK</b><small>Balilihan Campus</small></span></a>
     <button type="button" class="side-toggle" @click="toggleSide()" :aria-expanded="(!sideCollapsed).toString()" :aria-label="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'" :title="sideCollapsed ? 'Expand the sidebar' : 'Collapse the sidebar'"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m15 6-6 6 6 6"/></svg></button>
   </div>
   <nav class="side-nav" aria-label="Sections">
@@ -31,12 +31,6 @@
   @if($demoControls ?? false)
   <div class="proto">
     <p class="proto-title">Prototype controls</p>
-    <label for="actor">Signed in as</label>
-    <select id="actor" x-model="actor">
-      <option value="cd">Campus Director</option>
-      <option value="cdasst">Assistant (Lorna Abella)</option>
-    </select>
-    <p class="proto-note" x-show="!isDirector">Assistants can review and add remarks but cannot approve, return or decline.</p>
     <button type="button" class="link" @click="simulateNewRequest()">Simulate a new request from the Extension Director</button>
     <a class="link" href="{{ $dashboard('extension-director') }}">Open the Extension Director dashboard</a>
     <a class="link" href="{{ $dashboard('president') }}">Open the University President dashboard</a>

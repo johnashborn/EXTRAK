@@ -59,11 +59,11 @@
       <div class="callout bad" x-show="r.overlap">
         <template x-if="r.overlap"><div>
           <div class="ov-head"><b>Possible overlap, <span x-text="r.overlap.score"></span>% similar</b>
-            <span class="pill t-muted" x-show="r.overlap.resolution" x-text="'Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'campuses will coordinate'}[r.overlap.resolution]"></span></div>
+            <span class="pill t-muted" x-show="r.overlap.resolution" x-text="'Campus Director of ' + campusName(r) + ': ' + {allow:'allowed both', coordinate:'campuses will coordinate', proceed:'went ahead as is'}[r.overlap.resolution]"></span></div>
           @if ($role === 'ed')
           <p class="muted" x-show="!r.overlap.resolution">You can still submit. The Campus Director decides how to handle this when reviewing the request.</p>
           @elseif ($role === 'cd')
-          <p class="muted" x-show="!r.overlap.resolution">When you approve, choose whether to allow both or have the campuses coordinate. To ask for changes in place, dates or scope, return it instead.</p>
+          <p class="muted" x-show="!r.overlap.resolution">When you approve, choose whether to allow both, have the campuses coordinate, or go ahead as is. To ask for changes in place, dates or scope, return it instead.</p>
           @else
           <p class="muted" x-show="r.overlap.resolution" x-text="'The Campus Director of ' + campusName(r) + ' made this decision. If the campuses should handle it differently, return the request with a remark.'"></p>
           @endif
@@ -108,7 +108,8 @@
       </ul>
 
       <template x-if="r.report"><div>
-        <h3 class="d-sec">Accomplishment report</h3>
+        <div class="d-sec-row"><h3 class="d-sec">Accomplishment report</h3>
+          <button type="button" class="btn sm ghost" x-show="['completed','archived'].includes(r.status)" @click="openActivityReport(r)"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4v11M7.5 10.5 12 15l4.5-4.5M5 19h14"/></svg>Export</button></div>
         <dl class="details">
           <div><dt>Actual dates</dt><dd x-text="fmtDate(r.report.actualStart) + ' to ' + fmtDate(r.report.actualEnd)"></dd></div>
           <div><dt>Actual budget</dt><dd x-text="peso(r.report.actualBudget)"></dd></div>

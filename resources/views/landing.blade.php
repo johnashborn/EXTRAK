@@ -3,9 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>EXTRACK</title>
-<meta name="theme-color" content="#272150">
+<title>EXTRACK · BISU Extension Services</title>
+<meta name="description" content="EXTRACK helps Bohol Island State University record, review and report extension services, and warns directors when two campuses plan similar work for the same community.">
+<meta name="theme-color" media="(prefers-color-scheme: light)" content="#272150">
+<meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E0C24">
+@include('prototype.partials.favicons')
 <link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com">
 <link rel="preconnect" href="https://a.tile.openstreetmap.org">
 <link rel="preconnect" href="https://b.tile.openstreetmap.org">
@@ -15,7 +19,7 @@
 <link rel="stylesheet" href="{{ asset('css/landing.css') }}">
 </head>
 <body>
-<a class="skip" href="#features">Skip to main content</a>
+<a class="skip" href="#main">Skip to main content</a>
 {{-- Stylized Bohol outline, reused by the hero preview and the campus map --}}
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
@@ -24,14 +28,17 @@
   </defs>
 </svg>
 
-<header class="hero" id="top">
-  <div class="ghost" aria-hidden="true">EXTRACK</div>
+<header class="topbar" id="top"><div class="wrap">
+  <nav class="nav" aria-label="Main">
+    <a class="brand" href="#top"><img src="{{ asset('images/brand/extrack-mark-reversed.svg') }}" alt="" width="40" height="40"><b translate="no">EXTRACK</b></a>
+    <div class="links"><a href="#features">What it does</a><a href="#how">How it works</a><a href="#campuses">Campuses</a></div>
+    <a class="btn gold sm" href="{{ url('/admin/login') }}">Sign in</a>
+  </nav>
+</div></header>
+
+<main id="main" tabindex="-1">
+<section class="hero">
   <div class="wrap">
-    <nav class="nav" aria-label="Main">
-      <a class="brand" href="#top"><img src="{{ asset('images/logo.png') }}" alt="" width="40" height="40"><b>EXTRACK</b></a>
-      <div class="links"><a href="#features">What it does</a><a href="#how">How it works</a><a href="#campuses">Campuses</a></div>
-      <a class="btn gold sm" href="{{ url('/admin/login') }}">Sign in</a>
-    </nav>
     <div class="hero-grid">
       <div class="hero-copy">
         <p class="org">Bohol Island State University, Extension Services</p>
@@ -59,25 +66,24 @@
         </div>
         <div class="pv-body">
           <div class="flagrow">
-            <div><span class="chip-flag">Possible overlap</span><b>Sampoloc, Calape</b><small>Same barangay, overlapping dates</small></div>
+            <div><span class="chip-flag">Possible overlap</span><b>Sampoangon, Calape</b><small>Same barangay, overlapping dates</small></div>
             <div class="pc"><span data-count="87">87</span>%<small>similar</small></div>
           </div>
           <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="87" aria-label="Similarity"><i></i></div>
           <div class="vs">
             <div><span>Calape Campus</span>Seaweed farming training for coastal women</div>
-            <div><span>Main Campus</span>Aquaculture skills seminar for fisherfolk families</div>
+            <div><span>Main Campus</span>Aquaculture skills seminar for fishing families</div>
           </div>
         </div>
       </figure>
     </div>
   </div>
-</header>
+</section>
 
-<main>
 <section class="s" id="features"><div class="wrap">
   <div class="s-head">
     <h2>Know what is already happening before you plan.</h2>
-    <p>Extension records used to live in separate folders on separate campuses. EXTRACK puts them in one place that every authorized office can search.</p>
+    <p>Extension records used to live in separate folders on separate campuses. EXTRACK brings them into one system, so each office can see what has been done and where.</p>
   </div>
 
   <div class="check">
@@ -87,11 +93,11 @@
     </div>
     <div class="compare" role="group" aria-label="Example comparison of two activities">
       <div class="pair">
-        <article><span>New, Calape Campus</span><p>Training on <mark>seaweed</mark> farming and drying for coastal women, to add a second <mark>income</mark> source for <mark>fisherfolk</mark> households.</p></article>
-        <article><span>Existing, Main Campus</span><p>Aquaculture skills seminar on <mark>seaweed</mark> and tilapia culture for <mark>fisherfolk</mark> families, focused on household <mark>income</mark>.</p></article>
+        <article><span>New, Calape Campus</span><p>Training on <mark>seaweed farming</mark> and drying for coastal women, to add a second <mark>income source</mark> for <mark>fisherfolk households</mark>.</p></article>
+        <article><span>Existing, Main Campus</span><p><mark>Aquaculture</mark> skills seminar on tilapia pond culture for <mark>fishing families</mark>, focused on household <mark>livelihood</mark>.</p></article>
       </div>
       <dl class="factors">
-        <div><dt>Meaning</dt><dd><i style="--v:91%"></i>91%</dd></div>
+        <div><dt>Meaning</dt><dd><span class="bar"><i style="width:91%"></i></span>91%</dd></div>
         <div><dt>Place</dt><dd>Same barangay</dd></div>
         <div><dt>Timing</dt><dd>Overlaps by 6 weeks</dd></div>
       </dl>
@@ -99,19 +105,22 @@
   </div>
 
   <ul class="more">
-    <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6.5"/><path d="m20 20-4.4-4.4"/></svg><h3>Every campus in one list</h3><p>Search and filter by campus, barangay, date, status and category.</p></li>
-    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.5 17 19 7.5"/></svg><h3>Approvals that leave a trail</h3><p>The Campus Director, then the University President, approves or returns each request with a remark. The Extension Director sees why.</p></li>
-    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 13h5M10 16.5h5"/></svg><h3>Reports ready for CHED</h3><p>Consolidated accomplishments by campus, quarter or category, exported to PDF or Excel.</p></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg><h3>Every campus on one map</h3><p>See ongoing and completed services across all campuses, and filter them by campus or category.</p></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.5 17 19 7.5"/></svg><h3>Approvals that leave a trail</h3><p>The Campus Director, then the University President, can approve, return or decline each request. The Extension Director can read their remarks.</p></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 13h5M10 16.5h5"/></svg><h3>Consolidated reports</h3><p>Filter the archive by year, campus or category, then export the results as a PDF or for Excel.</p></li>
   </ul>
 </div></section>
 
 <section class="s band" id="how"><div class="wrap">
-  <div class="s-head"><h2>From encoding to the annual report.</h2></div>
+  <div class="s-head">
+    <h2>From request to report.</h2>
+    <p>Each step stays on the same record, so anyone reviewing it can see the full history.</p>
+  </div>
   <ol class="steps">
     <li><i>1</i><h3>Request</h3><p>The Extension Director describes the service, its barangay, dates and budget, and attaches documents.</p></li>
     <li><i>2</i><h3>Check</h3><p>EXTRACK suggests a category and shows any similar activities before anything is submitted.</p></li>
     <li><i>3</i><h3>Approve</h3><p>The Campus Director approves it for their campus, then the University President gives final approval.</p></li>
-    <li><i>4</i><h3>Report</h3><p>Completed work moves to a permanent archive and feeds the consolidated reports.</p></li>
+    <li><i>4</i><h3>Report</h3><p>The Extension Director reports the results with photos. The record then moves to the archive, ready for consolidated reports.</p></li>
   </ol>
 </div></section>
 
@@ -136,9 +145,10 @@
   </svg>
   </div>
 </div></section>
+
+<section class="closing"><div class="wrap row"><h2>Ready to log this term’s activities?</h2><a class="btn gold" href="{{ url('/admin/login') }}">Sign in to EXTRACK</a></div></section>
 </main>
 
-<div class="closing"><div class="wrap row"><h2>Ready to log this term’s activities?</h2><a class="btn gold" href="{{ url('/admin/login') }}">Sign in to EXTRACK</a></div></div>
 <footer><div class="wrap"><span>EXTRACK, Research, Innovation and Extension Office</span><span>Bohol Island State University</span></div></footer>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
@@ -152,7 +162,7 @@
       boxZoom: false, keyboard: false, touchZoom: false, tap: false, zoomSnap: 0.25,
     });
     map.fitBounds(bounds);
-    L.control.attribution({ position: 'bottomleft', prefix: false }).addAttribution('&copy; OpenStreetMap').addTo(map);
+    L.control.attribution({ position: 'bottomleft', prefix: false }).addAttribution('&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>').addTo(map);
     var tiles = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 18 }).addTo(map);
     tiles.once('load', function () {
       el.parentNode.classList.add('live');
@@ -167,7 +177,7 @@
     var map = liveMap('pv-live', [[9.56, 123.78], [10.12, 124.6]]);
     if (!map) return;
     var pins = [
-      ['ong', 9.877, 123.893], ['prop', 9.869, 123.903], // the flagged pair in Sampoloc, Calape
+      ['ong', 9.877, 123.893], ['prop', 9.869, 123.903], // the flagged pair in Calape
       ['ong', 9.7553, 123.9703], ['ong', 9.7095, 124.1083],
       ['comp', 9.6476, 123.855], ['comp', 9.9617, 124.0247], ['comp', 9.8186, 124.4958],
       ['prop', 9.9524, 123.9625], ['prop', 9.799, 123.8],
@@ -180,7 +190,7 @@
 
   // Campuses: one pin per campus town
   (function () {
-    var map = liveMap('campus-live', [[9.58, 123.8], [10.05, 124.56]]);
+    var map = liveMap('campus-live', [[9.53, 123.8], [10.05, 124.56]]);
     if (!map) return;
     [['Main', 9.6476, 123.855, 'bottom'], ['Balilihan', 9.7553, 123.9703, 'top'], ['Bilar', 9.7095, 124.1083, 'top'],
       ['Calape', 9.8918, 123.8768, 'top'], ['Clarin', 9.9617, 124.0247, 'top'], ['Candijay', 9.8186, 124.4958, 'top']].forEach(function (c) {

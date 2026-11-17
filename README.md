@@ -108,7 +108,6 @@ Above the form, pick the role you want to see:
 - **Extension Director**: writes requests and accomplishment reports for Balilihan Campus.
 - **Extension Assistant**: encodes requests for the Extension Director (same dashboard).
 - **Campus Director**: approves, returns or declines the campus's requests.
-- **Campus Assistant**: helps the Campus Director (same dashboard).
 - **President**: gives final approval and sees every campus.
 
 To switch roles, sign out (bottom of the sidebar) and sign in again with another role.
@@ -122,7 +121,7 @@ To switch roles, sign out (bottom of the sidebar) and sign in again with another
 3. Sign out, then sign in as **President**. Open it and give **final approval**.
 4. Back as **Extension Director**, open it and click **Mark as started**. Then write the **accomplishment report** with photos. Submitting the report moves it to the **Archive**.
 
-The President can also filter the archive and delete records from it.
+Every role can filter the archive and click **Export report** to preview a consolidated report of the filtered records, then save it as a PDF or download it for Excel. The report layout is a placeholder until the official format is available. The President can also delete records from the archive.
 
 **Demo controls (hidden by default).** There are testing controls that let one person act out the other roles (buttons like "Campus Director approves") and a **Reset demo data** button that puts the sample data back. They're hidden so the screens are clean for presenting. To turn them on, open `routes/web.php` and change `'demoControls' => false` to `true`. They show up in the sidebar and in each request's details.
 
