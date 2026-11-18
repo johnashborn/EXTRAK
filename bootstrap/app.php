@@ -1,5 +1,6 @@
 <?php
 
+use App\Http\Middleware\EnsureUserIsActive;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
@@ -14,6 +15,10 @@ return Application::configure(basePath: dirname(__DIR__))
     ->withMiddleware(function (Middleware $middleware): void {
         // Guests hitting protected pages go to the sign-in page (route arrives in a later task)
         $middleware->redirectGuestsTo('/login');
+        $middleware->redirectUsersTo('/dashboard');
+
+        // Deactivated users are signed out on their next request
+        $middleware->appendToGroup('web', EnsureUserIsActive::class);
 
         // Behind a sharing tunnel (ngrok, VS Code port forwarding) the page is served over https
         // from another host; trust the tunnel's forwarded headers so links and assets use that address.

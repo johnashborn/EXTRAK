@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>EXTRACK · BISU Extension Services</title>
-<meta name="description" content="EXTRACK helps Bohol Island State University record, review and report extension services, and warns directors when two campuses plan similar work for the same community.">
+<meta name="description" content="EXTRACK keeps the completed extension services of every Bohol Island State University campus in one place: their accomplishment reports, documents and photos, searchable and on one map.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#272150">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E0C24">
 @include('partials.favicons')
@@ -43,36 +43,32 @@
       <div class="hero-copy">
         <p class="org">Bohol Island State University, Extension Services</p>
         <h1>One view of every barangay we serve.</h1>
-        <p class="lead">EXTRACK helps the extension office record, review and report community work across every campus. It also warns directors before two campuses plan the same thing for the same community.</p>
+        <p class="lead">EXTRACK keeps every campus’s completed extension services in one place, with their accomplishment reports, documents and photos. Find any service by barangay, campus or year, see it on the map, and export reports.</p>
         <div class="cta">
           <a class="btn gold" href="{{ url('/login') }}">Sign in to EXTRACK</a>
           <a class="btn line" href="#how">See how it works</a>
         </div>
-        <p class="note">For Extension Directors, Campus Directors and the University President. Accounts are issued by the extension office.</p>
+        <p class="note">For each campus’s uploaders, the Campus Directors and the University President. Accounts are issued by the University President.</p>
       </div>
 
-      <figure class="preview" aria-label="Example of an overlap warning in EXTRACK">
+      <figure class="preview" aria-label="Example of a completed service in EXTRACK">
         <div class="pv-map">
           {{-- the same OpenStreetMap map as the dashboards; the drawing below shows until it loads, or if it cannot --}}
           <div class="pv-live live-map" id="pv-live" role="img" aria-hidden="true" aria-label="Map of Bohol with extension activities marked"></div>
           <svg class="pv-fallback" viewBox="0 0 210 135" role="img" aria-label="Map of Bohol with extension activities marked">
             <use href="#bohol" class="land"/><use href="#panglao" class="land"/>
-            <g class="m ong"><circle cx="44" cy="46" r="3.6"/><circle cx="96" cy="40" r="2.8"/><circle cx="120" cy="96" r="2.8"/></g>
-            <g class="m comp"><circle cx="150" cy="56" r="2.8"/><circle cx="66" cy="84" r="2.8"/><circle cx="172" cy="100" r="2.8"/></g>
-            <g class="m prop"><circle cx="40" cy="98" r="2.8"/><circle cx="130" cy="34" r="2.8"/></g>
-            <circle class="ring" cx="44" cy="46" r="9" pathLength="100"/>
+            <g class="m comp"><circle cx="44" cy="46" r="3.6"/><circle cx="96" cy="40" r="2.8"/><circle cx="120" cy="96" r="2.8"/><circle cx="150" cy="56" r="2.8"/><circle cx="66" cy="84" r="2.8"/><circle cx="172" cy="100" r="2.8"/><circle cx="40" cy="98" r="2.8"/><circle cx="130" cy="34" r="2.8"/></g>
           </svg>
-          <ul class="legend"><li class="ong">Ongoing</li><li class="comp">Completed</li><li class="prop">Proposed</li></ul>
+          <ul class="legend"><li class="comp">Completed services</li></ul>
         </div>
         <div class="pv-body">
           <div class="flagrow">
-            <div><span class="chip-flag">Possible overlap</span><b>Sampoangon, Calape</b><small>Same barangay, overlapping dates</small></div>
-            <div class="pc"><span data-count="87">87</span>%<small>similar</small></div>
+            <div><span class="chip-ok">Published · CAL-2026-019</span><b>Seaweed farming training for coastal women</b><small>Sampoloc, Calape · Feb 2 to Apr 24, 2026</small></div>
+            <div class="pc ok"><span data-count="38">38</span><small>people reached</small></div>
           </div>
-          <div class="meter" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="87" aria-label="Similarity"><i></i></div>
           <div class="vs">
-            <div><span>Calape Campus</span>Seaweed farming training for coastal women</div>
-            <div><span>Main Campus</span>Aquaculture skills seminar for fishing families</div>
+            <div><span>Accomplishment report</span>Scanned copy, PDF</div>
+            <div><span>Attendance sheets and photos</span>3 files</div>
           </div>
         </div>
       </figure>
@@ -82,52 +78,52 @@
 
 <section class="s" id="features"><div class="wrap">
   <div class="s-head">
-    <h2>Know what is already happening before you plan.</h2>
-    <p>Extension records used to live in separate folders on separate campuses. EXTRACK brings them into one system, so each office can see what has been done and where.</p>
+    <h2>Every report, kept where it can be found.</h2>
+    <p>Extension records used to live in separate folders on separate campuses. EXTRACK brings them into one repository, so each office can see what has been done and where.</p>
   </div>
 
   <div class="check">
     <div class="check-copy">
-      <h3>Catches overlaps even when the wording differs.</h3>
-      <p>When the Extension Director describes a new service, EXTRACK compares its meaning, place and dates with existing work. A seaweed farming training and an aquaculture seminar in the same barangay get flagged, even though they share few exact words.</p>
+      <h3>Upload a soft copy or a scan.</h3>
+      <p>A campus uploads the accomplishment report as it is, a soft copy or a scanned copy, then adds the barangays, dates and people reached, with the attendance sheets and photos. Files stay private to signed-in users.</p>
     </div>
-    <div class="compare" role="group" aria-label="Example comparison of two activities">
+    <div class="compare" role="group" aria-label="Example of an uploaded service record">
       <div class="pair">
-        <article><span>New, Calape Campus</span><p>Training on <mark>seaweed farming</mark> and drying for coastal women, to add a second <mark>income source</mark> for <mark>fisherfolk households</mark>.</p></article>
-        <article><span>Existing, Main Campus</span><p><mark>Aquaculture</mark> skills seminar on tilapia pond culture for <mark>fishing families</mark>, focused on household <mark>livelihood</mark>.</p></article>
+        <article><span>Accomplishment report</span><p>Seaweed farming training for coastal women. Scanned copy, PDF.</p></article>
+        <article><span>Supporting files</span><p>Attendance sheet (soft copy), two photos of the planting lines and the first harvest.</p></article>
       </div>
       <dl class="factors">
-        <div><dt>Meaning</dt><dd><span class="bar"><i style="width:91%"></i></span>91%</dd></div>
-        <div><dt>Place</dt><dd>Same barangay</dd></div>
-        <div><dt>Timing</dt><dd>Overlaps by 6 weeks</dd></div>
+        <div><dt>Barangay</dt><dd>Sampoloc, Calape</dd></div>
+        <div><dt>Reached</dt><dd>38 women</dd></div>
+        <div><dt>Status</dt><dd>Published as CAL-2026-019</dd></div>
       </dl>
     </div>
   </div>
 
   <ul class="more">
-    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg><h3>Every campus on one map</h3><p>See ongoing and completed services across all campuses, and filter them by campus or category.</p></li>
-    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12.5 9.5 17 19 7.5"/></svg><h3>Approvals that leave a trail</h3><p>The Campus Director, then the University President, can approve, return or decline each request. The Extension Director can read their remarks.</p></li>
-    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 13h5M10 16.5h5"/></svg><h3>Consolidated reports</h3><p>Filter the archive by year, campus or category, then export the results as a PDF or for Excel.</p></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-6.5-5.7-6.5-11a6.5 6.5 0 0 1 13 0c0 5.3-6.5 11-6.5 11z"/><circle cx="12" cy="10" r="2.3"/></svg><h3>Every campus on one map</h3><p>See the completed services of all campuses, and filter them by campus, category or year.</p></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="6"/><path d="m20 20-4.5-4.5"/></svg><h3>Search across campuses</h3><p>Find a service by title, barangay, code or year, then open its report and photos.</p></li>
+    <li><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3.5h7l4 4v13H7z"/><path d="M14 3.5v4h4M10 13h5M10 16.5h5"/></svg><h3>Consolidated reports</h3><p>Filter the repository by year, campus or category, then export the results as a PDF or for Excel.</p></li>
   </ul>
 </div></section>
 
 <section class="s band" id="how"><div class="wrap">
   <div class="s-head">
-    <h2>From request to report.</h2>
-    <p>Each step stays on the same record, so anyone reviewing it can see the full history.</p>
+    <h2>From upload to report.</h2>
+    <p>Each record keeps its files and its history, so anyone reviewing it can see who added what.</p>
   </div>
   <ol class="steps">
-    <li><i>1</i><h3>Request</h3><p>The Extension Director describes the service, its barangay, dates and budget, and attaches documents.</p></li>
-    <li><i>2</i><h3>Check</h3><p>EXTRACK suggests a category and shows any similar activities before anything is submitted.</p></li>
-    <li><i>3</i><h3>Approve</h3><p>The Campus Director approves it for their campus, then the University President gives final approval.</p></li>
-    <li><i>4</i><h3>Report</h3><p>The Extension Director reports the results with photos. The record then moves to the archive, ready for consolidated reports.</p></li>
+    <li><i>1</i><h3>Upload</h3><p>The campus uploads the accomplishment report, as a soft copy or a scanned copy.</p></li>
+    <li><i>2</i><h3>Describe</h3><p>They fill in the title, barangays, dates and people reached, and add attendance sheets and photos.</p></li>
+    <li><i>3</i><h3>Publish</h3><p>The record gets its reference code and joins the repository, where every campus can find it.</p></li>
+    <li><i>4</i><h3>Report</h3><p>The University President and the campuses search, map and export reports across all campuses.</p></li>
   </ol>
 </div></section>
 
 <section class="s" id="campuses"><div class="wrap campus-grid">
   <div class="s-head">
     <h2>One record across the university.</h2>
-    <p>The archive stays when directors change, so the next team starts from what was already done.</p>
+    <p>The repository stays when people change, so the next team starts from what was already done.</p>
     <ul class="campus-list"><li>Main Campus, Tagbilaran</li><li>Balilihan Campus</li><li>Bilar Campus</li><li>Calape Campus</li><li>Candijay Campus</li><li>Clarin Campus</li></ul>
   </div>
   <div class="campus-map-wrap">
@@ -146,7 +142,7 @@
   </div>
 </div></section>
 
-<section class="closing"><div class="wrap row"><h2>Ready to log this term’s activities?</h2><a class="btn gold" href="{{ url('/login') }}">Sign in to EXTRACK</a></div></section>
+<section class="closing"><div class="wrap row"><h2>Ready to upload this term’s reports?</h2><a class="btn gold" href="{{ url('/login') }}">Sign in to EXTRACK</a></div></section>
 </main>
 
 <footer><div class="wrap"><span>EXTRACK, Research, Innovation and Extension Office</span><span>Bohol Island State University</span></div></footer>
@@ -177,15 +173,15 @@
     var map = liveMap('pv-live', [[9.56, 123.78], [10.12, 124.6]]);
     if (!map) return;
     var pins = [
-      ['ong', 9.877, 123.893], ['prop', 9.869, 123.903], // the flagged pair in Calape
-      ['ong', 9.7553, 123.9703], ['ong', 9.7095, 124.1083],
+      ['comp', 9.877, 123.893], // the record shown below, in Calape
+      ['comp', 9.7553, 123.9703], ['comp', 9.7095, 124.1083],
       ['comp', 9.6476, 123.855], ['comp', 9.9617, 124.0247], ['comp', 9.8186, 124.4958],
-      ['prop', 9.9524, 123.9625], ['prop', 9.799, 123.8],
+      ['comp', 9.9524, 123.9625], ['comp', 9.799, 123.8],
     ];
     pins.forEach(function (p) {
       L.circleMarker([p[1], p[2]], { radius: 5.5, weight: 1.5, color: '#fff', fillOpacity: 1, className: 'm ' + p[0], interactive: false }).addTo(map);
     });
-    L.marker([9.873, 123.898], { icon: L.divIcon({ className: 'pv-ring', html: '<i></i>', iconSize: [34, 34] }), interactive: false, keyboard: false }).addTo(map);
+    L.marker([9.877, 123.893], { icon: L.divIcon({ className: 'pv-ring ok', html: '<i></i>', iconSize: [34, 34] }), interactive: false, keyboard: false }).addTo(map);
   })();
 
   // Campuses: one pin per campus town
@@ -200,7 +196,7 @@
     });
   })();
 
-  // Count the hero similarity score up alongside the meter fill (skipped when reduced motion is on)
+  // Count the hero's people-reached number up (skipped when reduced motion is on)
   (function () {
     var el = document.querySelector('[data-count]');
     if (!el || matchMedia('(prefers-reduced-motion: reduce)').matches) return;

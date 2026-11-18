@@ -16,7 +16,7 @@
   --ink:#ECEAFA; --ink-2:#B0ABD6; --ink-3:#9A96C6;
   --brand:#8A7CE8; --brand-ink:#17123A; --brand-soft:#2B2660; --panel:#25214F; --panel-ink:#ECEAFA;
   --deep:#0E0C24; --deep-2:#1B1744;
-  --gold-soft:#3A2F0C; --gold-ink:#F0D98A; --flag:#F28A74; --flag-soft:#3B1D17;
+  --gold-soft:#3A2F0C; --gold-ink:#F0D98A; --flag:#F28A74; --flag-soft:#3B1D17; --s-comp:#7F9CE6;
   --land:#262252; --land-line:#423C7E; color-scheme:dark}
   :root:not([data-theme="light"]) .live-map .leaflet-tile-pane{filter:invert(1) hue-rotate(200deg) saturate(.5) brightness(.9) contrast(.9)}}
 :root[data-theme="dark"]{
@@ -24,7 +24,7 @@
   --ink:#ECEAFA; --ink-2:#B0ABD6; --ink-3:#9A96C6;
   --brand:#8A7CE8; --brand-ink:#17123A; --brand-soft:#2B2660; --panel:#25214F; --panel-ink:#ECEAFA;
   --deep:#0E0C24; --deep-2:#1B1744;
-  --gold-soft:#3A2F0C; --gold-ink:#F0D98A; --flag:#F28A74; --flag-soft:#3B1D17;
+  --gold-soft:#3A2F0C; --gold-ink:#F0D98A; --flag:#F28A74; --flag-soft:#3B1D17; --s-comp:#7F9CE6;
   --land:#262252; --land-line:#423C7E; color-scheme:dark}
 :root[data-theme="dark"] .live-map .leaflet-tile-pane{filter:invert(1) hue-rotate(200deg) saturate(.5) brightness(.9) contrast(.9)}
 
@@ -92,6 +92,9 @@ main:focus-visible{outline:none}
 .legend .ong::before{background:var(--s-ong)} .legend .comp::before{background:var(--s-comp)} .legend .prop::before{background:var(--s-prop)}
 .pv-body{padding:18px 20px 20px;display:flex;flex-direction:column;gap:12px}
 .flagrow{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+.chip-ok{display:inline-block;font-size:12px;font-weight:600;color:var(--s-comp);background:color-mix(in srgb,var(--s-comp) 16%,transparent);padding:2px 9px;border-radius:6px;animation:fade .4s ease 2s backwards}
+.pc.ok{color:var(--s-comp)}
+.pv-ring.ok i{border-color:var(--s-comp)}
 .chip-flag{display:inline-block;font-size:12px;font-weight:600;color:var(--flag);background:var(--flag-soft);padding:2px 9px;border-radius:6px;animation:fade .4s ease 2s backwards}
 .pv-body b{font-weight:600;display:block;line-height:1.3;margin-top:8px}
 .pv-body small{color:var(--ink-3);font-size:12.5px}
