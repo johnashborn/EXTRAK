@@ -22,6 +22,15 @@ Check that Laragon's **PHP is 8.3 or newer**. In Laragon, right-click → **PHP*
 
 The project also needs these PHP extensions: **intl, pdo_mysql, fileinfo, gd, zip**. To turn them on, right-click Laragon → **PHP** → **Extensions** and make sure each is checked.
 
+**Upload limits.** Records carry reports and photos of up to 20 MB each (the `files.max_mb` setting in `config/extrack.php`), and one save can send several files. PHP's defaults are much lower. In Laragon, open **Menu → PHP → php.ini**, set these two lines, save, then click **Reload** (or **Stop** and **Start All**):
+
+```ini
+upload_max_filesize = 25M
+post_max_size = 200M
+```
+
+`upload_max_filesize` must be a little above `files.max_mb`, so EXTRACK (not PHP) rejects an oversized file with a clear message. `post_max_size` is the limit for everything sent in one save. If you raise `files.max_mb`, raise both.
+
 > Not on Windows? Any setup with PHP 8.3+, Composer and MySQL (or MariaDB) works. The commands below are the same.
 
 ---

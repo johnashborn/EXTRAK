@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\InviteController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
@@ -26,4 +27,13 @@ Route::middleware('auth')->group(function () {
 
     Route::resource('users', UserController::class)->except(['show', 'destroy']);
     Route::patch('/users/{user}/active', [UserController::class, 'setActive'])->name('users.active');
+
+    // {service} resolves through the draft scope: another campus's draft is a 404.
+    Route::get('/services/create', [ServiceController::class, 'create'])->name('services.create');
+    Route::post('/services', [ServiceController::class, 'store'])->name('services.store');
+    Route::get('/services/{service}', [ServiceController::class, 'show'])->name('services.show');
+    Route::get('/services/{service}/edit', [ServiceController::class, 'edit'])->name('services.edit');
+    Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
+    Route::post('/services/{service}/publish', [ServiceController::class, 'publish'])->name('services.publish');
+    Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.discard');
 });
