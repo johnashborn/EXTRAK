@@ -3,6 +3,7 @@
 use App\Http\Controllers\Auth\InviteController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\DocumentController;
 use App\Http\Controllers\ServiceController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -36,4 +37,7 @@ Route::middleware('auth')->group(function () {
     Route::put('/services/{service}', [ServiceController::class, 'update'])->name('services.update');
     Route::post('/services/{service}/publish', [ServiceController::class, 'publish'])->name('services.publish');
     Route::delete('/services/{service}', [ServiceController::class, 'destroy'])->name('services.discard');
+
+    Route::get('/documents/{document}', [DocumentController::class, 'show'])->name('documents.show');
+    Route::get('/documents/{document}/download', [DocumentController::class, 'download'])->name('documents.download');
 });

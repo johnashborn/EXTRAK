@@ -13,7 +13,11 @@
     @else
         <ul>
             @foreach ($service->documents as $document)
-                <li>{{ $document->original_name }} ({{ $document->kind->label() }})</li>
+                <li>
+                    <a href="{{ route('documents.show', $document) }}">{{ $document->original_name }}</a>
+                    ({{ $document->kind->label() }})
+                    <a href="{{ route('documents.download', $document) }}">Download</a>
+                </li>
             @endforeach
         </ul>
     @endif
