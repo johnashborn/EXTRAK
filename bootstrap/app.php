@@ -12,8 +12,8 @@ return Application::configure(basePath: dirname(__DIR__))
         health: '/up',
     )
     ->withMiddleware(function (Middleware $middleware): void {
-        // Guests hitting protected pages go to the Filament login
-        $middleware->redirectGuestsTo(fn () => route('filament.admin.auth.login'));
+        // Guests hitting protected pages go to the sign-in page (route arrives in a later task)
+        $middleware->redirectGuestsTo('/login');
 
         // Behind a sharing tunnel (ngrok, VS Code port forwarding) the page is served over https
         // from another host; trust the tunnel's forwarded headers so links and assets use that address.

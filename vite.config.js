@@ -1,7 +1,6 @@
 import { defineConfig } from 'vite';
 import laravel from 'laravel-vite-plugin';
 import { bunny } from 'laravel-vite-plugin/fonts';
-import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
     plugins: [
@@ -14,7 +13,6 @@ export default defineConfig({
                 }),
             ],
         }),
-        tailwindcss(),
     ],
     server: {
         watch: {
