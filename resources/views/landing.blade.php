@@ -7,7 +7,7 @@
 <meta name="description" content="EXTRACK helps Bohol Island State University record, review and report extension services, and warns directors when two campuses plan similar work for the same community.">
 <meta name="theme-color" media="(prefers-color-scheme: light)" content="#272150">
 <meta name="theme-color" media="(prefers-color-scheme: dark)" content="#0E0C24">
-@include('prototype.partials.favicons')
+@include('partials.favicons')
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="preconnect" href="https://unpkg.com">
@@ -32,7 +32,7 @@
   <nav class="nav" aria-label="Main">
     <a class="brand" href="#top"><img src="{{ asset('images/brand/extrack-mark-reversed.svg') }}" alt="" width="40" height="40"><b translate="no">EXTRACK</b></a>
     <div class="links"><a href="#features">What it does</a><a href="#how">How it works</a><a href="#campuses">Campuses</a></div>
-    <a class="btn gold sm" href="{{ url('/admin/login') }}">Sign in</a>
+    <a class="btn gold sm" href="{{ url('/login') }}">Sign in</a>
   </nav>
 </div></header>
 
@@ -45,7 +45,7 @@
         <h1>One view of every barangay we serve.</h1>
         <p class="lead">EXTRACK helps the extension office record, review and report community work across every campus. It also warns directors before two campuses plan the same thing for the same community.</p>
         <div class="cta">
-          <a class="btn gold" href="{{ url('/admin/login') }}">Sign in to EXTRACK</a>
+          <a class="btn gold" href="{{ url('/login') }}">Sign in to EXTRACK</a>
           <a class="btn line" href="#how">See how it works</a>
         </div>
         <p class="note">For Extension Directors, Campus Directors and the University President. Accounts are issued by the extension office.</p>
@@ -146,7 +146,7 @@
   </div>
 </div></section>
 
-<section class="closing"><div class="wrap row"><h2>Ready to log this term’s activities?</h2><a class="btn gold" href="{{ url('/admin/login') }}">Sign in to EXTRACK</a></div></section>
+<section class="closing"><div class="wrap row"><h2>Ready to log this term’s activities?</h2><a class="btn gold" href="{{ url('/login') }}">Sign in to EXTRACK</a></div></section>
 </main>
 
 <footer><div class="wrap"><span>EXTRACK, Research, Innovation and Extension Office</span><span>Bohol Island State University</span></div></footer>
