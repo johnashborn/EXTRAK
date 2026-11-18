@@ -32,7 +32,7 @@
 ## Review Focus
 
 1. **A file whose extension lies** (an `.exe` renamed `report.pdf`) must be rejected by MIME type, not accepted by extension. → Task 5 test `test_upload_rejects_file_whose_content_is_not_its_extension`.
-2. **Two Extension Directors of the same campus publishing at the same moment** must still get different codes. → Task 3 test `test_codes_stay_unique_when_generated_back_to_back` plus a unique index on `services.code`.
+2. **Two Campus Uploaders of the same campus publishing at the same moment** must still get different codes. → Task 3 test `test_codes_stay_unique_when_generated_back_to_back` plus a unique index on `services.code`.
 3. **A request bigger than PHP's limits** (Laragon's default `upload_max_filesize` is 2 MB, `post_max_size` 8 MB) must show "This file is larger than the 20 MB limit", not a blank page or a 419. → Task 5 sets the limits in the README and maps `PostTooLargeException` to a friendly redirect; test `test_oversized_post_shows_friendly_error`.
 4. **A barangay that is not in the chosen municipality** (a tampered form) must be rejected. → Task 5 test `test_barangay_outside_chosen_municipality_is_rejected`.
 5. **Original file names with ñ, spaces or quotes** ("Accomplishment Report – Sta. Niño.pdf") must download with that name intact. → Task 6 test `test_download_keeps_non_ascii_original_name`.
@@ -103,11 +103,11 @@ tests/Feature/... (one file per task, named below)
 
 **Interfaces:**
 - Produces:
-  - `enum Role: string { President = 'president'; ExtensionDirector = 'extension_director'; ExtensionAssistant = 'extension_assistant'; CampusDirector = 'campus_director'; public function label(): string }`. The labels are "University President", "Extension Director", "Extension Director's Assistant", "Campus Director".
-  - `users` gains `role` (string 30), `campus_id` (nullable FK → campuses), `principal_id` (nullable FK → users), `is_active` (bool, default true), `auth_provider` (string 20, default `local`), `external_id` (nullable string, unique), `last_login_at` (nullable datetime). `password` becomes nullable (invited users have none yet).
-  - `User::hasAbility(string $ability): bool`. True when `$this->role->value` is in `config("extrack.permissions.$ability")`. Unknown ability ⇒ false.
-  - `User::isCampusBound(): bool` (every role except President). Relations `campus()`, `principal()`. Casts: `role` ⇒ `Role`, `is_active` ⇒ bool.
-  - Factory states: `president()`, `extensionDirector(Campus $c)`, `assistant(User $director)` (same campus as the director), `campusDirector(Campus $c)`, `inactive()`.
+  - `enum Role: string { President = 'president'; CampusUploader = 'campus_uploader'; CampusDirector = 'campus_director'; public function label(): string }`. `label()` reads `config('extrack.role_labels')` ("University President", "Campus Uploader", "Campus Director"). (Changed 2026-11-18: who uploads is undecided, so one neutral uploader role replaces the Extension Director and assistant roles.)
+  - `users` gains `role` (string 30), `campus_id` (nullable FK → campuses), `is_active` (bool, default true), `auth_provider` (string 20, default `local`), `external_id` (nullable string, unique), `last_login_at` (nullable datetime). `password` becomes nullable (invited users have none yet).
+  - `User::hasAbility(string $ability): bool`. True when `$this->role->value` is in `(array) (config('extrack.permissions')[$ability] ?? [])`. Unknown ability ⇒ false.
+  - `User::isCampusBound(): bool` (every role except President). Relation `campus()`. Casts: `role` ⇒ `Role`, `is_active` ⇒ bool.
+  - Factory states: `president()`, `campusUploader(Campus $c)`, `campusDirector(Campus $c)`, `inactive()`.
   - `config/extrack.php`:
 
 ```php
@@ -123,13 +123,13 @@ return [
     'files' => ['max_mb' => 20, 'types' => ['pdf', 'docx', 'xlsx', 'jpg', 'jpeg', 'png', 'webp'], 'report_types' => ['pdf', 'docx', 'jpg', 'jpeg', 'png']],
     // ability => roles. "own campus" limits are applied by the policies, not here.
     'permissions' => [
-        'view_published'   => ['president', 'extension_director', 'extension_assistant', 'campus_director'],
-        'view_drafts'      => ['extension_director', 'extension_assistant'],
-        'create'           => ['extension_director', 'extension_assistant'],
-        'edit_draft'       => ['extension_director', 'extension_assistant'],
-        'edit_published'   => ['extension_director'],
-        'publish'          => ['extension_director'],
-        'discard_draft'    => ['extension_director', 'extension_assistant'],
+        'view_published'   => ['president', 'campus_uploader', 'campus_director'],
+        'view_drafts'      => ['campus_uploader'],
+        'create'           => ['campus_uploader'],
+        'edit_draft'       => ['campus_uploader'],
+        'edit_published'   => ['campus_uploader'],
+        'publish'          => ['campus_uploader'],
+        'discard_draft'    => ['campus_uploader'],
         'delete_published' => ['president'],
         'manage_users'     => ['president'],
         'manage_reference' => ['president'],
@@ -141,9 +141,9 @@ return [
 ```
 
 - [ ] **Step 1: Write failing tests** in `RolesTest`:
-  - `test_abilities_follow_the_config`: an Extension Director has `publish`, an assistant does not. After `config(['extrack.permissions.publish' => ['extension_director', 'extension_assistant']])`, the assistant does.
+  - `test_abilities_follow_the_config`: a Campus Uploader has `publish`, a Campus Director does not. After the config adds `campus_director` to `publish`, the director does.
   - `test_unknown_ability_is_denied`.
-  - `test_president_is_not_campus_bound` and `test_assistant_inherits_director_campus`.
+  - `test_president_is_not_campus_bound`, `test_uploader_and_director_are_campus_bound`, and a `Role::label()` test that follows `extrack.role_labels`.
 - [ ] **Step 2: Run** `php artisan test --filter=RolesTest` → FAIL.
 - [ ] **Step 3: Implement** the config, enum, migration, model changes and factory states.
 - [ ] **Step 4: Run** → PASS.
@@ -176,7 +176,7 @@ return [
   - `ServiceCodeTest::test_soft_deleted_codes_are_not_reused`.
   - `ServiceCodeTest::test_codes_stay_unique_when_generated_back_to_back`: 20 sequential `next()` calls each saved onto a service give 20 distinct codes. Saving a duplicate code throws `UniqueConstraintViolationException`.
   - `ServiceCodeTest::test_format_comes_from_config`: with `extrack.code.format = '{YEAR}/{PREFIX}/{SEQ}'` ⇒ `2026/BAL/001`.
-  - `DraftVisibilityTest::test_drafts_are_seen_only_by_their_campus_uploaders`: a Balilihan draft is visible to a Balilihan Extension Director and assistant, and hidden from a Calape Extension Director, a Balilihan Campus Director and the President. A published record is visible to all of them.
+  - `DraftVisibilityTest::test_drafts_are_seen_only_by_their_campus_uploaders`: a Balilihan draft is visible to a Balilihan Campus Uploader, and hidden from a Calape Campus Uploader, a Balilihan Campus Director and the President. A published record is visible to all of them.
 - [ ] **Step 3: Run** `php artisan test --filter='PlacesTest|ServiceCodeTest|DraftVisibilityTest'` → FAIL.
 - [ ] **Step 4: Implement** the migrations, enums, models, scope, generator, logger and seeder.
 - [ ] **Step 5: Run** → PASS.
@@ -196,9 +196,9 @@ return [
   - `interface Authenticator { public function showLogin(Request $r): Response; public function authenticate(Request $r): User; }`. `LocalAuthenticator::showLogin` renders the form. `authenticate` validates the email and password, throws `ValidationException` with "These details don't match an active account." on failure, and returns the user. A future `ZitadelAuthenticator` redirects in `showLogin` and handles the Socialite callback in `authenticate`.
   - `FindUserForSignIn::handle(string $email, string $provider, ?string $externalId = null): ?User`. It returns an existing **active** user only; it never creates one (invite-only). On first Zitadel sign-in it stores `external_id` and sets `auth_provider`.
   - Routes: `GET /login`, `POST /login`, `POST /logout`, `GET /invites/{user}` (signed), `POST /invites/{user}` (signed), and `/users` resource (index, create, store, edit, update) plus `PATCH /users/{user}/active`. `POST /login/demo/{user}` exists only when `config('extrack.demo')` is true. After sign-in the user goes to `/dashboard`; `last_login_at` is set.
-  - `InviteUser::handle(User $by, array $data): array{user: User, url: string}`. `$data` has name, email, role, campus_id, principal_id. It creates the user with a null password and returns `URL::temporarySignedRoute('invites.show', now()->addDays(config('extrack.invite_days')), ['user' => $id])`. It sends nothing in the prototype (mail stays on the log driver), and the Users page shows the URL with a Copy button.
+  - `InviteUser::handle(User $by, array $data): array{user: User, url: string}`. `$data` has name, email, role, campus_id. It creates the user with a null password and returns `URL::temporarySignedRoute('invites.show', now()->addDays(config('extrack.invite_days')), ['user' => $id])`. It sends nothing in the prototype (mail stays on the log driver), and the Users page shows the URL with a Copy button.
   - `UpdateUser::handle(User $by, User $target, array $data): User`. `SetUserActive::handle(User $by, User $target, bool $active): User`. A user can't deactivate themselves. All three log to the activity log.
-  - Validation in `InviteUserRequest`: role is required and must be a `Role`. `campus_id` is required unless the role is President. `principal_id` is required for an assistant and must be an active Extension Director of the same campus. Email must be unique.
+  - Validation in `InviteUserRequest`: role is required and must be a `Role`. `campus_id` is required unless the role is President. Email must be unique. Role and campus are always set explicitly from validated input, never mass-assigned from the whole request.
   - `UserPolicy`: every method checks `hasAbility('manage_users')`.
 
 - [ ] **Step 1: Write failing tests:**
@@ -210,8 +210,8 @@ return [
   - `test_find_user_never_creates_accounts`.
   - `InviteTest::test_invite_link_sets_password_once`: open the link → 200; post a password → signed in. The same link afterwards → 410 with "This invite has already been used".
   - `test_invite_link_expires_after_configured_days`: `travel(8)->days()` → 403.
-  - `test_assistant_invite_requires_a_director_of_the_same_campus`.
-  - `UsersPageTest::test_only_president_manages_users`: the Extension Director, assistant and Campus Director each get 403 on `/users`.
+  - `test_campus_roles_require_a_campus`.
+  - `UsersPageTest::test_only_president_manages_users`: the Campus Uploader and Campus Director each get 403 on `/users`.
   - `test_president_cannot_deactivate_self`.
 - [ ] **Step 2: Run** `php artisan test --filter='SignInTest|InviteTest|UsersPageTest'` → FAIL.
 - [ ] **Step 3: Implement.**
@@ -265,8 +265,8 @@ return [
   - `test_every_action_writes_activity_log`: create ⇒ `created`, update ⇒ `updated` with the changed keys only, publish ⇒ `published`, discard ⇒ `discarded`, attach ⇒ `document_added`.
 
   `ServicePermissionsTest`, using a data provider over `[role, action, own campus?, expected status]` for every row of the §5 table. Actions: create, edit draft, edit published, publish, discard. Expect 403 where denied, including:
-  - an assistant trying to publish
-  - a Calape Extension Director editing a Balilihan record
+  - a Campus Director trying to publish
+  - a Calape Campus Uploader editing a Balilihan record
   - the Campus Director or the President creating a record
 - [ ] **Step 2: Run** `php artisan test --filter='SaveServiceTest|ServicePermissionsTest'` → FAIL.
 - [ ] **Step 3: Implement.** In `README.md`, document `upload_max_filesize = 25M` and `post_max_size = 200M` for Laragon's php.ini (Menu → PHP → php.ini).
@@ -313,7 +313,7 @@ return [
   - **Header:** brand mark and "EXTRACK" on the left. On the right, in order: the app switcher (from `config('extrack.app_switcher')`; shows "No other BISU systems yet" when empty), the notification center (the 10 latest database notifications, an unread count, and "Mark all as read" posting to `POST /notifications/read`), and the user menu (name, role label, Settings link for the President, Sign out).
   - **Sidebar by role:**
     - everyone: Dashboard, Repository, Map
-    - Extension Director and assistant: + "Add completed service"
+    - Campus Uploader: + "Add completed service"
     - President: + Users, Reference data, Activity log
   - **Footer, three columns:** the BISU seal (`images/logo.png`) on the left; "© {year} Bohol Island State University" in the centre; social links and `footer.developers` on the right; a "Terms and Conditions" link to `/terms` (a placeholder page saying the text will come from BISU).
   - **Tokens** in `tokens.css`: `--color-primary:#330066; --color-secondary:#FFCC00; --color-accent:#FFFFFF;` and a neutral grey scale `--gray-50…--gray-900`, the type scale `--text-xs…--text-3xl`, the spacing scale `--space-1…--space-16`, radii, and `--font-display: 'Montserrat'; --font-body: 'Public Sans'`.
@@ -321,7 +321,7 @@ return [
 
 - [ ] **Step 1: Write failing tests:**
   - `ShellTest::test_shell_has_header_footer_and_breadcrumbs`: as any user, `get('/dashboard')` contains the brand name, the user's name, "© ".date('Y'), "Terms and Conditions" and the breadcrumb.
-  - `test_sidebar_matches_role`: the President sees "Users", the Extension Director sees "Add completed service" but not "Users", the Campus Director sees neither.
+  - `test_sidebar_matches_role`: the President sees "Users", the Campus Uploader sees "Add completed service" but not "Users", the Campus Director sees neither.
   - `test_notifications_mark_as_read`.
   - `test_no_external_font_or_cdn_links`: the dashboard HTML does not contain `fonts.googleapis`, `unpkg`, `cdnjs` or `jsdelivr`.
 - [ ] **Step 2: Run** `php artisan test --filter=ShellTest` → FAIL. (The `DashboardController` stub from Task 4 now renders `<x-layouts.app>`; Task 9 fills in its content.)
@@ -357,8 +357,8 @@ return [
   - `test_filters_by_campus_year_category_municipality_and_sector`, one assertion each.
   - `test_sort_by_people_reached`.
   - `test_record_page_shows_history_and_documents`.
-  - `test_buttons_follow_permissions`: the President sees "Delete" but not "Edit", and the Extension Director of the same campus sees "Edit" but not "Delete".
-  - `DeleteServiceTest::test_only_president_deletes_published_with_reason`: no reason → 422; the Extension Director → 403; the President with a reason → the record is gone from the repository and the activity log has `deleted` with the reason.
+  - `test_buttons_follow_permissions`: the President sees "Delete" but not "Edit", and the Campus Uploader of the same campus sees "Edit" but not "Delete".
+  - `DeleteServiceTest::test_only_president_deletes_published_with_reason`: no reason → 422; the Campus Uploader → 403; the President with a reason → the record is gone from the repository and the activity log has `deleted` with the reason.
 - [ ] **Step 2: Run** `php artisan test --filter='RepositoryTest|DeleteServiceTest'` → FAIL.
 - [ ] **Step 3: Implement.**
 - [ ] **Step 4: Run** → PASS.
@@ -422,7 +422,7 @@ return [
   - `GET /exports/consolidated?{repository filters}`: the print page. `GET /exports/consolidated.csv?...`: CSV.
   - `GET /services/{id}/export`: the print page. `GET /services/{id}/export.csv`: CSV.
   - `ReportExport::consolidated(array $filters): array` and `ReportExport::service(Service $s): array` return the rows the views and CSV share. `ReportExport::toCsv(array $rows): string` adds a UTF-8 BOM, CRLF line endings, and prefixes `'` to any cell starting with `= + - @ \t \r` (as in the prototype's `saveCsv`).
-  - Both print pages carry a small "Sample layout" note in the screen toolbar only (hidden when printing) until BISU's template arrives. Signers: Prepared by (the campus's Extension Director), Noted by (the Campus Director), Approved by (the President), from the users table. When a role has no user, the line shows the role name.
+  - Both print pages carry a small "Sample layout" note in the screen toolbar only (hidden when printing) until BISU's template arrives. Signers: Prepared by (the record's publisher, shown with their role label), Noted by (the Campus Director), Approved by (the President), from the users table. When a role has no user, the line shows the role name.
 
 - [ ] **Step 1: Write failing tests:**
   - `test_consolidated_respects_filters_and_totals`.
@@ -474,12 +474,11 @@ return [
 **Interfaces:**
 - Produces demo users, all with the password `password`:
   - `president@extrack.test`
-  - `ed.balilihan@extrack.test`
-  - `assistant.balilihan@extrack.test`
+  - `uploader.balilihan@extrack.test`
   - `cd.balilihan@extrack.test`
-  - `ed.{campus}@extrack.test` for each other campus
+  - `uploader.{campus}@extrack.test` for each other campus
 
-  The names are taken from the defense prototype's people (for example Sir Marc Olaguir, Miss Jaquelyn L. Omapas, Mrs. Marietta Macalolot, Mr. Anthony M. Penaso). Every record gets a generated placeholder report PDF (a one-page PDF written with a minimal hand-built PDF string) and 1 to 3 placeholder photos (GD-drawn PNGs labelled "Sample photo"). Published records get codes through `ServiceCodeGenerator`.
+  The names are taken from the defense prototype's people (for example Sir Marc Olaguir as the Balilihan uploader, Mrs. Marietta Macalolot, Mr. Anthony M. Penaso). Every record gets a generated placeholder report PDF (a one-page PDF written with a minimal hand-built PDF string) and 1 to 3 placeholder photos (GD-drawn PNGs labelled "Sample photo"). Published records get codes through `ServiceCodeGenerator`.
 
 - [ ] **Step 1: Write failing tests:**
   - `test_demo_seed_creates_publishable_records`: every published demo record passes the `publish.required` rules.
@@ -496,8 +495,8 @@ return [
 - [ ] **Step 4: Run the whole suite:** `php artisan test` → all pass. Then `php artisan migrate:fresh --seed`, `npm run build` and `php artisan serve`.
 - [ ] **Step 5: Manual walk-through in a browser:**
   1. Sign in as each role with the demo buttons.
-  2. As the Balilihan assistant, add a record with a scanned report and two photos, and save it as a draft.
-  3. As the Extension Director, publish it, and check that it gets `BAL-2026-0xx`.
+  2. As the Balilihan Campus Uploader, add a record with a scanned report and two photos, and save it as a draft.
+  3. Publish it, and check that it gets `BAL-2026-0xx`.
   4. As the President, see the notification, find the record by barangay, open its PDF, export both reports, and delete it with a reason.
   5. Check the activity log.
   6. Check the map.

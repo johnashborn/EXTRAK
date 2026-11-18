@@ -80,13 +80,12 @@ These are the prototype's defaults, since the meeting has not settled them (spec
 | Role | Add, edit and publish records | Read records | Delete records | Manage users and reference data |
 |---|---|---|---|---|
 | University President (super admin) | No | All campuses | Yes (soft delete, reason required) | Yes |
-| Extension Director | Own campus: add, edit, publish | All campuses | No | No |
-| Extension Director's Assistant | Own campus: add and edit drafts only, cannot publish | All campuses | No | No |
+| Campus Uploader | Own campus: add, edit, publish | All campuses | No | No |
 | Campus Director | No | All campuses | No | No |
 
-- **Discarding drafts:** the Extension Director and the assistant can discard their own campus's drafts. Discarding removes the draft and its files for good. Only the President deletes published records.
-- "Read records" covers published records only. Drafts are visible only to their own campus's Extension Director and assistant.
-- An assistant's account is linked to one Extension Director.
+- **Who uploads is not decided yet** (2026-11-18), so the uploading role has a neutral name, "Campus Uploader". Its display name is a setting (`role_labels`, section 6.10), so it can be renamed (for example to "Extension Director") once BISU decides. There is one uploader role per campus; the earlier assistant role was dropped.
+- **Discarding drafts:** a Campus Uploader can discard their own campus's drafts. Discarding removes the draft and its files for good. Only the President deletes published records.
+- "Read records" covers published records only. Drafts are visible only to their own campus's Campus Uploaders.
 - Deactivated users cannot sign in, but their names stay on the records they created.
 
 ## 6. Design
@@ -115,8 +114,8 @@ New tables:
 
 ```text
 users (existing, extended)
-  + role (president | extension_director | extension_assistant | campus_director)
-  + campus_id (null for the President), principal_id (assistant → Extension Director)
+  + role (president | campus_uploader | campus_director)
+  + campus_id (null for the President)
   + is_active, auth_provider (local | zitadel), external_id, last_login_at
 
 services
@@ -163,7 +162,7 @@ One page with three steps:
 
 Buttons:
 - **Save draft:** needs at least the report file and a title.
-- **Publish:** the Extension Director only. Needs:
+- **Publish:** Campus Uploaders only (a setting). Needs:
   - title, category, municipality, at least one barangay, start and end dates, people reached, at least one sector, narrative, and the report file
   - optional: description, partners, amount spent and the supporting files
 - **Discard draft:** see section 5.
@@ -188,10 +187,10 @@ All screens use the university shell:
 | Screen | Route | Who | Contents |
 |---|---|---|---|
 | Dashboard (President) | `/dashboard` | President | Year totals (services, people reached, barangays, amount spent); services per campus chart, reused from the prototype; by category; recently published |
-| Dashboard (campus) | `/dashboard` | Extension Director, assistant, Campus Director | "Add completed service" button (where allowed); the campus's drafts; campus year totals; recently published |
+| Dashboard (campus) | `/dashboard` | Campus Uploader, Campus Director | "Add completed service" button (where allowed); the campus's drafts; campus year totals; recently published |
 | Repository | `/services` | All | Search, filters (campus, year, category, municipality, sector), sort; one row per record with its first photo, place, dates and people reached; Export report button |
 | Record page | `/services/{id}` | All who can see it | All fields, photo gallery, document list with View and Download, who encoded and published it, edit history; Edit, Publish, Discard, Delete and Export buttons by permission |
-| Add or edit | `/services/create`, `/services/{id}/edit` | Extension Director, assistant | The three steps in section 6.4 |
+| Add or edit | `/services/create`, `/services/{id}/edit` | Campus Uploader | The three steps in section 6.4 |
 | Map | `/map` | All | Leaflet and OpenStreetMap; a pin per barangay with published services, coloured by campus; filters for campus, category and year; reuses the prototype's map code and municipality coordinates |
 | Users | `/users` | President | List, invite, edit role and campus, deactivate or reactivate, copy the invite link |
 | Reference data | `/settings/*` | President | Campuses, categories, sectors and barangays: add, rename, hide |
@@ -219,7 +218,7 @@ All screens use the university shell:
 A seeder creates:
 
 - the 6 campuses, categories and sectors (existing seeder), and Bohol's municipalities and barangays (PSGC)
-- one user per role at Balilihan, a President, and an Extension Director at each other campus
+- a President, a Campus Uploader and a Campus Director at Balilihan, and a Campus Uploader at each other campus
 - about 15 published records and 2 drafts across campuses, reusing the current prototype's sample services
 - generated placeholder PDFs and photos so every record has files
 
@@ -244,7 +243,8 @@ The team will review these defaults with their mentors. Each one is a setting in
 | `publish.required` | The publish field list in section 6.4 |
 | `draft.required` | `report_file`, `title` |
 | `files.types`, `files.report_types`, `files.max_mb` | Section 6.4 |
-| `permissions` | The section 5 table, as a role-to-ability map that the policies read (for example `discard_draft: [extension_director, extension_assistant]`, `publish: [extension_director]`) |
+| `permissions` | The section 5 table, as a role-to-ability map that the policies read (for example `discard_draft: [campus_uploader]`, `publish: [campus_uploader]`) |
+| `role_labels` | University President, Campus Uploader, Campus Director |
 | `code.format`, `code.assign_on` | `{PREFIX}-{YEAR}-{SEQ}`, `publish` (or `draft`) |
 | `campus_prefixes` | MAIN, BAL, BIL, CAL, CAN, CLA |
 | `demo` | `APP_DEMO`: shows the "Sign in as" list on the login page |
